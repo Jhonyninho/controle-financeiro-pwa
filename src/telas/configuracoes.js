@@ -12,8 +12,8 @@ import { CORES_HUD, FONTES, TONS_HUD, aplicarAparencia, corDoHud, lerAparencia, 
 import { avisosDoDia, campanhaDoDia } from '../lib/campanhas.js';
 import { hojeISO } from '../lib/meses.js';
 import {
-  MOTORES, NIVEIS_EFEITO, motorPronto, NOME_PADRAO, configVoz, criarNarrador, esquecerAudiosGuardados, nomeAssistenteValido, salvarConfigVoz,
-  textoSaudacao, urlServidorValida, vozesDoNavegador,
+  MOTORES, NIVEIS_EFEITO, motorPronto, NOME_PADRAO, VOZES_GEMINI, configVoz, criarNarrador, nomeAssistenteValido, salvarConfigVoz,
+  textoSaudacao, tocarSaudacao, vozesDoNavegador,
 } from '../servicos/voz.js';
 import {
   autenticadores, concluirCadastro, iniciarCadastro, removerAutenticadores, sairDeTodosOsAparelhos, trocarSenha,
@@ -125,7 +125,7 @@ function desenhar(el) {
           acao: 'voz', ico: 'ui-voz', titulo: voz.estilo === 'assistente' ? `Assistente ${voz.assistente}` : 'Assistente e voz',
           texto: voz.motor === 'navegador'
             ? 'Voz do navegador (grátis, sem efeitos)'
-            : `Minha voz, timbre ${NIVEIS_EFEITO.find((n) => n.id === voz.efeito)?.nome.toLowerCase() || ''}${motorPronto(voz) ? '' : ' (falta o endereço do servidor)'}`,
+            : `Gemini ${voz.vozGemini}, timbre ${NIVEIS_EFEITO.find((n) => n.id === voz.efeito)?.nome.toLowerCase() || ''}${motorPronto(voz) ? '' : ' (falta a chave do Gemini)'}`,
           extra: html`<span class="selo ${voz.lerAuto ? 'selo-ok' : ''}">${voz.lerAuto ? 'lê sozinho' : 'ao tocar'}</span>`,
         })}
         ${cartaoAcao({
@@ -381,17 +381,11 @@ async function abrirVoz(el) {
         </label>`)}
       </fieldset>
 
-      <div class="campo-largo grade-form" data-motor="propria">
-        <p class="campo-largo dica">Sua voz é gerada no seu próprio Google Colab (grátis, com GPU) a partir de uma gravação sua de 20 a 40 segundos.
-          O passo a passo e o script estão no guia <strong>docs/VOZ-PROPRIA.md</strong> do projeto. Quando a célula do Colab estiver rodando,
-          copie o endereço que ela mostra (termina em <strong>ngrok-free.app</strong>) e cole abaixo. Com o Colab desligado, o app usa a voz do navegador.</p>
-        <label class="campo-largo">Endereço do servidor de voz
-          <input name="propriaUrl" type="text" inputmode="url" autocomplete="off" spellcheck="false" maxlength="200"
-            value="${v.propria.url}" placeholder="https://seu-endereco.ngrok-free.app" />
-        </label>
-        <label class="campo-largo">Token do servidor (opcional)
-          <input name="propriaToken" type="password" autocomplete="off" spellcheck="false" maxlength="200" value="${v.propria.token}"
-            placeholder="o mesmo TOKEN_VOZ do script, se você definiu um" />
+      <div class="campo-largo grade-form" data-motor="gemini">
+        <p class="campo-largo dica">Usa a chave do Gemini cadastrada em <strong>Diagnóstico com IA</strong> (mesmo que a análise use o Groq).
+          A cota gratuita de voz do Google é pequena: dá para algumas leituras do diagnóstico por dia. Se acabar, o app usa a voz do navegador.</p>
+        <label class="campo-largo">Voz do Gemini
+          <select name="vozGemini">${VOZES_GEMINI.map((x) => html`<option value="${x.id}" ${x.id === v.vozGemini ? 'selected' : ''}>${x.id}, ${x.descricao}</option>`)}</select>
         </label>
       </div>
 
@@ -413,11 +407,15 @@ async function abrirVoz(el) {
       <label>Velocidade
         <select name="velocidade">${[0.85, 1, 1.1, 1.25, 1.4].map((n) => html`<option value="${n}" ${n === v.velocidade ? 'selected' : ''}>${n === 1 ? 'normal' : `${n}x`}</option>`)}</select>
       </label>
-      <span class="campo-acao campo-largo"><button type="button" class="btn btn-secundario" data-testar-voz>Testar voz</button></span>
+      <span class="campo-acao campo-largo">
+        <button type="button" class="btn btn-secundario" data-testar-voz>Testar voz</button>
+        <button type="button" class="btn btn-secundario" data-ouvir-saudacao>Ouvir uma saudação</button>
+      </span>
       <label class="check campo-largo"><input type="checkbox" name="lerAuto" ${v.lerAuto ? 'checked' : ''} /> Ler em voz alta assim que o diagnóstico ficar pronto</label>
-      <label class="check campo-largo"><input type="checkbox" name="saudacao" ${v.saudacao ? 'checked' : ''} /> Saudação por voz ao entrar ("Boa noite, ${primeiro}. Aqui é ${v.assistente}…")</label>
-      <p class="campo-largo dica">Com a sua voz, cada saudação é gerada uma única vez e fica guardada neste aparelho: nas próximas entradas toca na hora,
-        mesmo com o Colab desligado. O endereço e o token ficam só neste aparelho.</p>
+      <label class="check campo-largo"><input type="checkbox" name="saudacao" ${v.saudacao ? 'checked' : ''} /> Saudação por voz ao entrar</label>
+      <p class="campo-largo dica">No estilo Assistente de IA, a saudação é sorteada a cada entrada entre dezenas de falas formais (conforme o período do dia,
+        o tratamento e datas como sexta-feira ou fim do mês), gravadas com voz neural: tocam na hora, em qualquer aparelho, sem gastar cota.
+        Por serem gravadas, não dizem o seu nome.</p>
     </div>`,
     aoMontar(form) {
       const mostrarMotor = () => {
@@ -433,24 +431,23 @@ async function abrirVoz(el) {
         teste?.parar();
         const anterior = configVoz();
         const d = dadosVoz(Object.fromEntries(new FormData(form)));
-        if (d.motor === 'propria' && !d.propria.url) {
-          avisar('Cole o endereço HTTPS do ngrok (ou trycloudflare.com) mostrado no Colab.', 'erro');
-          return;
-        }
         salvarConfigVoz(d); // o narrador lê a configuração salva
         teste = criarNarrador(textoTeste(d), { aoAviso: (m) => avisar(m, 'erro') }, { vinheta: d.estilo === 'assistente' && d.motor !== 'navegador' });
         teste.iniciar().catch(avisarErro).finally(() => salvarConfigVoz(anterior));
+      });
+      $('[data-ouvir-saudacao]', form).addEventListener('click', () => {
+        teste?.parar();
+        const anterior = configVoz();
+        salvarConfigVoz(dadosVoz(Object.fromEntries(new FormData(form))));
+        tocarSaudacao(estado.perfil?.nome)
+          .then((n) => (teste = n))
+          .catch(avisarErro)
+          .finally(() => salvarConfigVoz(anterior));
       });
       form.closest('dialog').addEventListener('close', () => teste?.parar());
     },
     async aoEnviar(f) {
       const d = dadosVoz(f);
-      if (d.motor === 'propria' && !d.propria.url) {
-        avisar('Cole o endereço HTTPS do ngrok (ou trycloudflare.com) mostrado no Colab.', 'erro');
-        return false;
-      }
-      // trocou de servidor: as saudações guardadas podem ser de outra gravação
-      if (d.propria.url !== v.propria.url) await esquecerAudiosGuardados();
       salvarConfigVoz({ ...d, lerAuto: f.lerAuto === 'on', saudacao: f.saudacao === 'on' });
       avisar('Assistente e voz salvos.');
       desenhar(el);
@@ -466,8 +463,8 @@ function dadosVoz(f) {
     tratamento: f.tratamento,
     efeito: f.efeito,
     motor: f.motor,
-    propria: { url: urlServidorValida(f.propriaUrl), token: String(f.propriaToken || '').trim() },
     vozNavegador: f.vozNavegador || '',
+    vozGemini: f.vozGemini,
     velocidade: Number(f.velocidade),
   };
 }

@@ -2,38 +2,34 @@
 //
 // Motores:
 //  - "navegador": Web Speech API (vozes do sistema; grátis, sem cota, instantâneo);
-//  - "propria": a voz do próprio usuário, gerada no servidor dele (Google Colab + XTTS v2,
-//    exposto por um túnel ngrok/Cloudflare; passo a passo em docs/VOZ-PROPRIA.md).
-// O áudio do servidor (WAV) é decodificado e tocado pelo Web Audio (sem <audio>/blob), o que
-// permite o timbre de IA (equalização, eco metálico) e um analisador para animar a interface.
-// Endereço e token do servidor ficam só neste aparelho.
+//  - "gemini": voz neural do Gemini (TTS) com a chave já cadastrada para o diagnóstico.
+//    A cota gratuita de voz é pequena, então cada leitura usa no máximo 2 pedidos.
+// A saudação ao entrar NÃO gasta cota: são falas gravadas uma vez com a voz do Gemini
+// (public/falas, src/lib/saudacoes.js) e sorteadas a cada entrada.
+// O áudio neural toca pelo Web Audio (sem <audio>/blob), o que permite o timbre de IA
+// (equalização, eco metálico) e um analisador para animar a interface.
 
-import { ErroIA } from './ia.js';
+import { ErroCota, ErroIA, chamar, configIA, registrarUso, verificarCota } from './ia.js';
+import { sortearSaudacao } from '../lib/saudacoes.js';
 
 const CHAVE = 'cf.voz';
 
 export const MOTORES = [
   { id: 'navegador', nome: 'Voz do navegador', descricao: 'grátis, sem limite e instantânea; sem os efeitos de IA' },
-  { id: 'propria', nome: 'Minha voz (servidor próprio)', descricao: 'sua voz gravada, gerada no seu Google Colab; funciona enquanto ele estiver ligado' },
+  { id: 'gemini', nome: 'Voz neural do Gemini', descricao: 'voz de assistente com a sua chave do Gemini; poucas leituras por dia na cota grátis' },
 ];
-const NEURAIS = new Set(['propria']);
+const NEURAIS = new Set(['gemini']);
 
-const textoCurto = (v) => (typeof v === 'string' ? v.trim().slice(0, 200) : '');
-
-// Só endereços HTTPS de túneis conhecidos (a CSP de produção libera exatamente estes).
-const HOSTS_TUNEL = /\.(ngrok-free\.app|ngrok-free\.dev|ngrok\.app|ngrok\.dev|ngrok\.io|trycloudflare\.com)$/i;
-
-/** Normaliza o endereço do servidor de voz; devolve '' se não for um túnel HTTPS aceito. */
-export function urlServidorValida(u) {
-  try {
-    const x = new URL(String(u || '').trim());
-    if (x.protocol !== 'https:' || x.username || x.password || !HOSTS_TUNEL.test(x.hostname)) return '';
-    const caminho = x.pathname.replace(/\/+$/, '').replace(/\/sintetizar$/, '');
-    return `${x.origin}${caminho}`;
-  } catch {
-    return '';
-  }
-}
+export const VOZES_GEMINI = [
+  { id: 'Charon', descricao: 'grave e informativa (masculina)' },
+  { id: 'Orus', descricao: 'firme (masculina)' },
+  { id: 'Iapetus', descricao: 'clara (masculina)' },
+  { id: 'Algenib', descricao: 'rouca (masculina)' },
+  { id: 'Fenrir', descricao: 'animada (masculina)' },
+  { id: 'Kore', descricao: 'firme (feminina)' },
+  { id: 'Sulafat', descricao: 'calorosa (feminina)' },
+  { id: 'Aoede', descricao: 'leve (feminina)' },
+];
 
 export const NOME_PADRAO = 'M.A.V.I.Z.';
 const NOMES_ANTIGOS = new Set(['Vega']); // padrão de versões anteriores vira o novo padrão
@@ -48,12 +44,23 @@ export function nomeFalado(nome) {
   return n;
 }
 
-/** Quanto do "timbre de IA" aplicar sobre a voz própria. */
+/** Quanto do "timbre de IA" aplicar sobre a voz neural. */
 export const NIVEIS_EFEITO = [
   { id: 'assistente', nome: 'Assistente de IA', descricao: 'timbre metálico, leve modulação digital e ambiência de cabine' },
   { id: 'sutil', nome: 'Sutil', descricao: 'só equalização e um eco curto' },
-  { id: 'desligado', nome: 'Desligado', descricao: 'sua voz pura, sem efeitos' },
+  { id: 'desligado', nome: 'Desligado', descricao: 'voz neural pura' },
 ];
+
+/** Instrução de interpretação enviada junto com o texto (o Gemini TTS segue o "jeito de falar"). */
+export function instrucaoDeFala(estilo, nome) {
+  if (estilo === 'natural') return 'Leia em português do Brasil, com voz calma, confiante e clara:';
+  return `Você é ${nomeFalado(nome)}, um assistente virtual de inteligência artificial de altíssima tecnologia. ` +
+    'Leia o texto abaixo em português do Brasil com voz grave de barítono leve, serena e segura, dicção impecável, ' +
+    'consoantes bem pronunciadas, ritmo cadenciado e pausado, num tom formal, polido e elegante, com um leve humor seco. ' +
+    'Não acrescente nem omita nada do texto:';
+}
+
+export const MODELOS_TTS = ['gemini-2.5-flash-preview-tts', 'gemini-2.5-flash-tts', 'gemini-2.5-pro-preview-tts'];
 
 export function configVoz() {
   let c = {};
@@ -62,12 +69,11 @@ export function configVoz() {
   } catch {
     /* sem storage */
   }
-  const p = c.propria || {};
   return {
-    // motores removidos (azure, eleven, gemini) voltam para a voz do navegador
+    // motores removidos (azure, eleven, propria) voltam para a voz do navegador
     motor: MOTORES.some((m) => m.id === c.motor) ? c.motor : 'navegador',
-    propria: { url: urlServidorValida(p.url), token: textoCurto(p.token) },
     tratamento: ['senhor', 'senhora'].includes(c.tratamento) ? c.tratamento : 'nome',
+    vozGemini: VOZES_GEMINI.some((v) => v.id === c.vozGemini) ? c.vozGemini : 'Charon',
     vozNavegador: typeof c.vozNavegador === 'string' ? c.vozNavegador : '',
     velocidade: Number(c.velocidade) >= 0.7 && Number(c.velocidade) <= 1.5 ? Number(c.velocidade) : 1,
     // efeitoHud (versões antigas) vira o nível "assistente"/"desligado"
@@ -87,7 +93,7 @@ export function nomeAssistenteValido(n) {
 
 /** O motor escolhido está configurado? */
 export function motorPronto(cfg = configVoz()) {
-  if (cfg.motor === 'propria') return Boolean(cfg.propria.url);
+  if (cfg.motor === 'gemini') return configIA().chaves.gemini.length >= 20;
   return true;
 }
 
@@ -143,114 +149,80 @@ export function roteiroDoDiagnostico(d) {
 }
 
 // ---------------------------------------------------------------------
-// Voz própria (servidor do usuário: Colab + XTTS v2)
+// Gemini TTS
 // ---------------------------------------------------------------------
-const cacheAudio = new Map(); // texto → { pcm: Float32Array, taxa }
+const cacheAudio = new Map(); // chave → { pcm: Float32Array, taxa }
 
-// Cache durável (IndexedDB) só para falas curtas e repetidas, como a saudação:
-// depois da primeira vez, toca na hora, mesmo com o servidor desligado.
-const BANCO = 'cf-voz-2';
-const BANCO_ANTIGO = 'cf-voz'; // áudios das vozes Gemini/Azure/ElevenLabs (removidas na v1.4)
-function abrirBanco() {
-  return new Promise((ok, erro) => {
-    const r = indexedDB.open(BANCO, 1);
-    r.onupgradeneeded = () => r.result.createObjectStore('audio');
-    r.onsuccess = () => ok(r.result);
-    r.onerror = () => erro(r.error);
-  });
-}
-async function lerDuravel(chave) {
-  try {
-    const db = await abrirBanco();
-    return await new Promise((ok) => {
-      const r = db.transaction('audio').objectStore('audio').get(chave);
-      r.onsuccess = () => ok(r.result || null);
-      r.onerror = () => ok(null);
-    });
-  } catch {
-    return null;
+/** PCM 16 bits little-endian (base64) → Float32. */
+export function pcmParaFloat(base64) {
+  const bin = atob(base64);
+  const n = bin.length >> 1;
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    let v = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8);
+    if (v >= 0x8000) v -= 0x10000;
+    out[i] = v / 0x8000;
   }
-}
-async function gravarDuravel(chave, audio) {
-  try {
-    const db = await abrirBanco();
-    db.transaction('audio', 'readwrite').objectStore('audio').put(audio, chave);
-  } catch {
-    /* sem IndexedDB: só não guarda */
-  }
+  return out;
 }
 
-/** Apaga as saudações guardadas (ao trocar de servidor/voz, para não tocar a voz antiga). */
-export async function esquecerAudiosGuardados() {
-  cacheAudio.clear();
-  try {
-    const db = await abrirBanco();
-    db.transaction('audio', 'readwrite').objectStore('audio').clear();
-  } catch {
-    /* sem IndexedDB */
-  }
-}
-
-async function comCache(chaveCache, persistir, gerar) {
+async function sintetizarGemini(texto, voz, sinal, { contarUso = true, instrucao = instrucaoDeFala('natural') } = {}) {
+  const chaveCache = `${voz}|${instrucao}|${texto}`;
   if (cacheAudio.has(chaveCache)) return cacheAudio.get(chaveCache);
-  if (persistir) {
-    const guardado = await lerDuravel(chaveCache);
-    if (guardado?.pcm) {
-      cacheAudio.set(chaveCache, guardado);
-      return guardado;
+  const cfg = configIA();
+  const chaveGemini = cfg.chaves.gemini;
+  if (!chaveGemini) throw new ErroIA('Cadastre a chave do Gemini em Configurações → Diagnóstico com IA para usar esta voz.');
+  // a voz conta no limite do app só quando o Gemini também é o provedor do diagnóstico
+  if (contarUso && cfg.provedor === 'gemini') {
+    verificarCota(cfg);
+    registrarUso();
+  }
+  const corpo = {
+    contents: [{ parts: [{ text: `${instrucao}\n\n${texto}` }] }],
+    generationConfig: {
+      responseModalities: ['AUDIO'],
+      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voz } } },
+    },
+  };
+  let ultimo;
+  for (const modelo of MODELOS_TTS) {
+    try {
+      const r = await chamar(`models/${modelo}:generateContent`, { chave: chaveGemini, corpo, sinal });
+      const parte = r?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
+      if (!parte) throw new ErroIA('A voz do Gemini não devolveu áudio.');
+      const audio = { pcm: pcmParaFloat(parte.inlineData.data), taxa: 24000 };
+      cacheAudio.set(chaveCache, audio);
+      return audio;
+    } catch (e) {
+      if (e?.name === 'AbortError' || sinal?.aborted) throw e;
+      if (!(e instanceof ErroCota) && !/Modelo indisponível/.test(e.message)) throw e;
+      ultimo = e;
     }
   }
-  const audio = await gerar();
-  cacheAudio.set(chaveCache, audio);
-  if (persistir) gravarDuravel(chaveCache, audio);
-  return audio;
+  throw new ErroCota(`Sem cota para a voz do Gemini agora (${ultimo?.message || 'limite do dia'}).`);
 }
 
-const LIMITE_ESPERA_MS = 90_000; // a primeira frase depois de ligar o Colab pode demorar
+// ---------------------------------------------------------------------
+// Falas gravadas (saudação)
+// ---------------------------------------------------------------------
+const base = () => (typeof import.meta !== 'undefined' && import.meta.env?.BASE_URL) || '/';
+let indiceFalas = null; // Promise<{ v, ids: Set }>
 
-/**
- * POST <url>/sintetizar (form "texto") → WAV, como no script do Colab em docs/VOZ-PROPRIA.md.
- * O cabeçalho ngrok-skip-browser-warning evita a página de aviso do ngrok gratuito.
- */
-async function sintetizarPropria(texto, p, ctx, sinal, { persistir = false } = {}) {
-  if (!p.url) throw new ErroIA('Informe o endereço do seu servidor de voz em Configurações → Assistente e voz.');
-  return comCache(`propria|${texto}`, persistir, async () => {
-    const corpo = new FormData();
-    corpo.append('texto', texto);
-    const cabecalhos = { 'ngrok-skip-browser-warning': '1' };
-    if (p.token) cabecalhos['X-Token-Voz'] = p.token;
-    const limite = typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(LIMITE_ESPERA_MS) : null;
-    const signal = limite && typeof AbortSignal.any === 'function' ? AbortSignal.any([sinal, limite]) : sinal;
-    let r;
-    try {
-      r = await fetch(`${p.url}/sintetizar`, {
-        method: 'POST',
-        body: corpo,
-        headers: cabecalhos,
-        signal,
-        credentials: 'omit',
-        referrerPolicy: 'no-referrer',
-      });
-    } catch (e) {
-      if (sinal.aborted) throw e;
-      if (e?.name === 'TimeoutError') throw new ErroIA('Seu servidor de voz demorou demais para responder.');
-      throw new ErroIA('Não consegui falar com o seu servidor de voz. Confira se a célula do Colab está rodando e se o endereço continua o mesmo.');
-    }
-    if (r.status === 401 || r.status === 403) throw new ErroIA('O servidor de voz recusou o token. Confira em Configurações → Assistente e voz.');
-    if (!r.ok) throw new ErroIA(`O servidor de voz respondeu com erro ${r.status}.`);
-    if (/text\/html/i.test(r.headers.get('content-type') || '')) {
-      throw new ErroIA('O túnel devolveu uma página em vez do áudio. Confira o endereço do servidor.');
-    }
-    let buf;
-    try {
-      buf = await ctx.decodeAudioData(await r.arrayBuffer());
-    } catch {
-      throw new ErroIA('O servidor de voz não devolveu um áudio válido.');
-    }
-    return { pcm: buf.getChannelData(0).slice(), taxa: buf.sampleRate };
-  });
+/** Índice das falas gravadas (public/falas/indice.json); vazio se ainda não foram geradas. */
+export function carregarIndiceFalas() {
+  indiceFalas ||= fetch(`${base()}falas/indice.json`, { credentials: 'omit' })
+    .then((r) => (r.ok ? r.json() : { ids: [] }))
+    .then((j) => ({ v: Number(j.v) || 1, ids: new Set(Array.isArray(j.ids) ? j.ids : []) }))
+    .catch(() => ({ v: 1, ids: new Set() }));
+  return indiceFalas;
 }
 
+async function baixarFala(id, v, ctx, sinal) {
+  const r = await fetch(`${base()}falas/${encodeURIComponent(id)}.mp3?v=${v}`, { signal: sinal, credentials: 'omit' });
+  if (!r.ok) throw new ErroIA('Fala gravada não encontrada.');
+  const buf = await ctx.decodeAudioData(await r.arrayBuffer());
+  return { pcm: buf.getChannelData(0).slice(), taxa: buf.sampleRate };
+}
 
 /**
  * Agrupa as frases em blocos para a voz neural: o primeiro é curto (começa a falar em
@@ -297,7 +269,8 @@ function aposInteracao() {
 /**
  * Narra o texto e avisa qual frase está sendo falada.
  * eventos: { aoFrase(i), aoNivel(0..1), aoFim(), aoMotor(nome), aoAviso(msg) }
- * opcoes: { persistir } guarda o áudio neural no aparelho (falas curtas e repetidas).
+ * opcoes: { clipes: { ids, v } } toca falas gravadas (public/falas) em vez de sintetizar;
+ *         { vinheta } toca o som de "sistema iniciando" antes da fala.
  */
 export function criarNarrador(texto, eventos = {}, opcoes = {}) {
   const frases = dividirFrases(texto);
@@ -572,20 +545,46 @@ export function criarNarrador(texto, eventos = {}, opcoes = {}) {
 
   async function viaNeural() {
     eventos.aoMotor?.(cfg.motor);
-    // Blocos de 1 a 2 frases: o XTTS começa a falar mais rápido e não corta frases longas.
-    // Sem cota a poupar, então não há limite de blocos.
-    const blocos = blocosDeFala(frases, { primeiro: 140, demais: 240, maxBlocos: 80 })
+    // no máximo 2 pedidos por leitura (a cota grátis de voz do Gemini é pequena):
+    // um bloco curto para começar a falar logo e o resto, gerado enquanto o primeiro toca
+    const blocos = blocosDeFala(frases, { primeiro: 170, demais: 700, maxBlocos: 2 })
       .map((idx) => ({ idx, texto: falavel(idx.map((i) => frases[i]).join(' ')) }));
     const sinal = abortar.signal;
-    const persistir = opcoes.persistir;
+    const instrucao = instrucaoDeFala(cfg.estilo, cfg.assistente);
     const ritmo = cfg.velocidade * (cfg.efeito === 'assistente' ? 0.97 : 1);
-    // adiante: 1 → um pedido por vez (o próximo bloco é gerado enquanto o atual toca);
-    // o servidor do Colab atende uma síntese de cada vez.
-    await reproduzirFila(blocos, (n) => sintetizarPropria(blocos[n].texto, cfg.propria, ctx, sinal, { persistir }), { ritmo, adiante: 1 });
+    await reproduzirFila(
+      blocos,
+      (n) => sintetizarGemini(blocos[n].texto, cfg.vozGemini, sinal, { contarUso: n === 0, instrucao }),
+      { ritmo, adiante: 2 },
+    );
+  }
+
+  /** Falas já gravadas (saudação): uma por bloco, baixadas e tocadas em sequência. */
+  async function viaClipes() {
+    const { ids, textos, v } = opcoes.clipes;
+    let ini = 0;
+    const blocos = textos.map((t) => {
+      const n = dividirFrases(t).length || 1;
+      const idx = Array.from({ length: n }, (_, k) => Math.min(ini + k, frases.length - 1));
+      ini += n;
+      return { idx };
+    });
+    await reproduzirFila(blocos, (n) => baixarFala(ids[n], v, ctx, abortar.signal), { ritmo: 1, adiante: 2 });
   }
 
   const iniciar = async () => {
-    if (NEURAIS.has(cfg.motor) && 'AudioContext' in window) {
+    if (opcoes.clipes?.ids?.length && 'AudioContext' in window) {
+      ctx = new AudioContext();
+      try {
+        await viaClipes();
+        return;
+      } catch {
+        // sem as falas gravadas (offline, arquivo ausente): lê o mesmo texto com a voz do navegador
+        ctx?.close().catch(() => {});
+        ctx = null;
+        if (parado) return;
+      }
+    } else if (NEURAIS.has(cfg.motor) && 'AudioContext' in window) {
       // criado já no toque do usuário, para o navegador liberar o som
       ctx = new AudioContext();
       try {
@@ -663,7 +662,31 @@ export function textoSaudacao(nome, { hora = new Date().getHours(), dia = new Da
   return `${periodoDoDia(hora)}${primeiro ? `, ${primeiro}` : ''}! ${frase}`;
 }
 
-/** Fala a saudação uma vez por sessão (se ligada em Configurações → Voz). */
+const CHAVE_RECENTES = 'cf.saudacoesRecentes';
+function lerRecentes() {
+  try {
+    const r = JSON.parse(localStorage.getItem(CHAVE_RECENTES) || '[]');
+    return Array.isArray(r) ? r.filter((x) => typeof x === 'string').slice(0, 8) : [];
+  } catch {
+    return [];
+  }
+}
+function lembrarRecentes(ids) {
+  try {
+    localStorage.setItem(CHAVE_RECENTES, JSON.stringify([...ids, ...lerRecentes()].slice(0, 8)));
+  } catch {
+    /* sem storage */
+  }
+}
+
+const hojeLocal = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/**
+ * Fala a saudação uma vez por sessão (se ligada em Configurações → Assistente e voz).
+ * No estilo assistente, sorteia uma das falas gravadas (sem gastar cota); se ainda não houver
+ * gravações, lê o mesmo texto sorteado com a voz do navegador.
+ */
 export function falarSaudacao(nome) {
   const cfg = configVoz();
   if (!cfg.saudacao || !vozDisponivel()) return null;
@@ -673,15 +696,39 @@ export function falarSaudacao(nome) {
   } catch {
     /* sem storage: fala mesmo assim */
   }
-  const assistente = cfg.estilo === 'assistente' ? cfg.assistente : null;
-  const n = criarNarrador(textoSaudacao(nome, { assistente, tratamento: cfg.tratamento }), {}, { persistir: true, vinheta: NEURAIS.has(cfg.motor) });
+  tocarSaudacao(nome).catch(() => {});
+  return true;
+}
+
+/** Sorteia e toca uma saudação agora (também usado pelo botão "Ouvir uma saudação"). Devolve o narrador. */
+export async function tocarSaudacao(nome) {
+  const cfg = configVoz();
+  if (cfg.estilo !== 'assistente') {
+    // estilo natural: saudação simples com o nome, na voz do navegador (sem gastar cota)
+    const n = criarNarrador(textoSaudacao(nome), {});
+    n.iniciar().catch(() => {});
+    return n;
+  }
+  const { ids, v } = await carregarIndiceFalas();
+  const agora = new Date();
+  const comNome = cfg.assistente === NOME_PADRAO; // as gravações dizem "Maviz"
+  const sorteio = (disponiveis) => sortearSaudacao({
+    hora: agora.getHours(), data: hojeLocal(agora), tratamento: cfg.tratamento, comNome, recentes: lerRecentes(), disponiveis,
+  });
+  const gravadas = ids.size ? sorteio(ids) : [];
+  const falas = gravadas.length ? gravadas : sorteio(null);
+  if (!falas.length) return null;
+  lembrarRecentes(falas.map((x) => x.id));
+  const textos = falas.map((x) => x.texto);
+  const clipes = gravadas.length ? { ids: falas.map((x) => x.id), textos, v } : null;
+  const n = criarNarrador(textos.join(' '), {}, { clipes, vinheta: Boolean(clipes) });
   n.iniciar().catch(() => {});
   return n;
 }
 
 /**
- * Limpa o que versões anteriores deixaram no aparelho: a voz local Piper (~96 MB), os áudios
- * guardados das vozes Gemini/Azure/ElevenLabs e as chaves desses serviços (removidos na v1.4).
+ * Limpa o que versões anteriores deixaram no aparelho: a voz local Piper (~96 MB), as saudações
+ * neurais guardadas (substituídas pelas falas gravadas) e chaves de vozes removidas (Azure, ElevenLabs).
  */
 export function limparVozLocalAntiga() {
   try {
@@ -690,16 +737,16 @@ export function limparVozLocalAntiga() {
     /* sem Cache Storage */
   }
   try {
-    if (typeof indexedDB !== 'undefined') indexedDB.deleteDatabase(BANCO_ANTIGO);
+    if (typeof indexedDB !== 'undefined') ['cf-voz', 'cf-voz-2'].forEach((b) => indexedDB.deleteDatabase(b));
   } catch {
     /* sem IndexedDB */
   }
   try {
     const c = JSON.parse(localStorage.getItem(CHAVE) || 'null');
-    if (c && (c.azure || c.eleven || c.vozGemini)) {
+    if (c && (c.azure || c.eleven || c.propria)) {
       delete c.azure;
       delete c.eleven;
-      delete c.vozGemini;
+      delete c.propria;
       localStorage.setItem(CHAVE, JSON.stringify(c));
     }
   } catch {

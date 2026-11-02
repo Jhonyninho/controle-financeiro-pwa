@@ -15,11 +15,8 @@ function csp(supabaseUrl) {
     "style-src 'self'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
-    // IA com a chave do próprio usuário: Gemini, Groq e OpenRouter (diagnóstico).
-    // Voz própria: o servidor do usuário no Colab, exposto por túnel ngrok ou Cloudflare
-    // (a mesma lista de HOSTS_TUNEL em src/servicos/voz.js).
-    `connect-src 'self' ${origem} ${ws} https://generativelanguage.googleapis.com https://api.groq.com https://openrouter.ai ` +
-      'https://*.ngrok-free.app https://*.ngrok-free.dev https://*.ngrok.app https://*.ngrok.dev https://*.ngrok.io https://*.trycloudflare.com',
+    // IA com a chave do próprio usuário: Gemini (diagnóstico e voz), Groq e OpenRouter (diagnóstico)
+    `connect-src 'self' ${origem} ${ws} https://generativelanguage.googleapis.com https://api.groq.com https://openrouter.ai`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

@@ -297,7 +297,7 @@ function pararNarrador() {
 }
 
 function descreverMotor(cv) {
-  return cv.motor === 'propria' ? 'sua voz' : 'voz do navegador';
+  return cv.motor === 'gemini' ? `voz neural do Gemini (${cv.vozGemini})` : 'voz do navegador';
 }
 
 function playerVoz(r) {
@@ -345,7 +345,7 @@ function iniciarNarrador(el, r) {
   const quem = cv.estilo === 'assistente' ? cv.assistente : null;
   rotulo.textContent = quem ? `${quem} está preparando a análise em voz…` : 'Preparando a voz…';
   const n = criarNarrador(roteiroDoDiagnostico(r), {
-    aoMotor: (m) => (rotulo.textContent = quem ? `${quem} está falando` : `Falando com ${m === 'navegador' ? 'a voz do navegador' : 'a sua voz'}`),
+    aoMotor: (m) => (rotulo.textContent = quem ? `${quem} está falando` : `Falando com ${m === 'navegador' ? 'a voz do navegador' : 'a voz neural do Gemini'}`),
     aoAviso: (msg) => avisar(msg, 'erro'),
     aoFrase: (i) => {
       legenda.textContent = n.frases[i] || '';

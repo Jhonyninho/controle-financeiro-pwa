@@ -2,7 +2,7 @@
 // Dados financeiros NUNCA são guardados em cache: requisições ao Supabase
 // (e qualquer outra origem) passam direto pela rede.
 
-const CACHE = 'cf-v1.4.0';
+const CACHE = 'cf-v1.5.0';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './manifest.webmanifest', './icons/icon-192.png'])));
@@ -33,13 +33,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Arquivos do build têm hash no nome (imutáveis): cache primeiro
+  // Arquivos do build têm hash no nome e as falas gravadas têm ?v= (imutáveis): cache primeiro
   event.respondWith(
     caches.match(req).then(
       (hit) =>
         hit ||
         fetch(req).then((res) => {
-          if (res.ok && url.pathname.includes('/assets/')) {
+          if (res.ok && (url.pathname.includes('/assets/') || (url.pathname.includes('/falas/') && url.search))) {
             const copia = res.clone();
             caches.open(CACHE).then((c) => c.put(req, copia));
           }

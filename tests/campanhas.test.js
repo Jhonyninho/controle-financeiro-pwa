@@ -88,7 +88,7 @@ describe('voz: blocos e saudação', () => {
   });
 });
 
-import { NOME_PADRAO, configVoz, nomeAssistenteValido, nomeFalado, urlServidorValida } from '../src/servicos/voz.js';
+import { NOME_PADRAO, configVoz, instrucaoDeFala, nomeAssistenteValido, nomeFalado } from '../src/servicos/voz.js';
 import { PROMPT_SISTEMA, promptSistema } from '../src/servicos/ia.js';
 
 describe('assistente próprio', () => {
@@ -120,28 +120,24 @@ describe('assistente próprio', () => {
     );
   });
 
-  it('servidor de voz própria: só HTTPS de túnel ngrok/Cloudflare', () => {
-    expect(urlServidorValida('https://abc-123.ngrok-free.app')).toBe('https://abc-123.ngrok-free.app');
-    expect(urlServidorValida(' https://abc.ngrok-free.app/sintetizar/ ')).toBe('https://abc.ngrok-free.app');
-    expect(urlServidorValida('https://x.trycloudflare.com/')).toBe('https://x.trycloudflare.com');
-    expect(urlServidorValida('http://abc.ngrok-free.app')).toBe('');
-    expect(urlServidorValida('https://ngrok-free.app.exemplo.com')).toBe('');
-    expect(urlServidorValida('https://user:senha@abc.ngrok-free.app')).toBe('');
-    expect(urlServidorValida('javascript:alert(1)')).toBe('');
-    expect(urlServidorValida('')).toBe('');
+  it('instrução de fala descreve um estilo, sem imitar pessoas reais', () => {
+    const t = instrucaoDeFala('assistente', 'M.A.V.I.Z.');
+    expect(t).toMatch(/Maviz/);
+    expect(t).toMatch(/dicção/);
+    expect(t).not.toMatch(/jarvis|bettany|tony|stark|marvel/i);
   });
 
-  it('motores antigos (Azure, ElevenLabs, Gemini) voltam para a voz do navegador', () => {
+  it('motores removidos (Azure, ElevenLabs, servidor próprio) voltam para a voz do navegador', () => {
     const mem = {};
     globalThis.localStorage = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => { mem[k] = String(v); } };
-    for (const motor of ['azure', 'eleven', 'gemini']) {
+    for (const motor of ['azure', 'eleven', 'propria']) {
       mem['cf.voz'] = JSON.stringify({ motor, azure: { chave: 'x'.repeat(32) } });
       const c = configVoz();
       expect(c.motor).toBe('navegador');
       expect(c).not.toHaveProperty('azure');
     }
-    mem['cf.voz'] = JSON.stringify({ motor: 'propria', propria: { url: 'https://abc.ngrok-free.app' } });
-    expect(configVoz().propria.url).toBe('https://abc.ngrok-free.app');
+    mem['cf.voz'] = JSON.stringify({ motor: 'gemini', vozGemini: 'Orus' });
+    expect(configVoz()).toMatchObject({ motor: 'gemini', vozGemini: 'Orus' });
     delete globalThis.localStorage;
   });
 
