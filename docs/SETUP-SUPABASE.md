@@ -30,8 +30,8 @@ Em **Authentication**:
 - **Multi-Factor (MFA)**: deixe **TOTP (App Authenticator)** ativado (já vem ligado). É o que permite a verificação em duas etapas em Configurações.
 - **Rate Limits**: os padrões já limitam tentativas de login; não aumente.
 - **URL Configuration** (é para cá que os links dos e-mails levam):
-  - *Site URL*: o endereço publicado, ex.: `https://SEU-USUARIO.github.io/controlefinanceiro-pwa/`. Enquanto testa só no PC, `http://localhost:5173/`.
-  - *Redirect URLs*: adicione os dois: `http://localhost:5173/**` e `https://SEU-USUARIO.github.io/controlefinanceiro-pwa/**`.
+  - *Site URL*: o endereço publicado, ex.: `https://jhonyninho.github.io/controle-financeiro-pwa/`. Enquanto testa só no PC, `http://localhost:5173/`.
+  - *Redirect URLs*: adicione os dois: `http://localhost:5173/**` e `https://jhonyninho.github.io/controle-financeiro-pwa/**`.
 - **Emails → Templates**: **não precisa mexer.** O app funciona com os modelos padrão (em inglês) de *Invite user* e *Reset password*.
   - Opcional: para personalizar o texto em português é necessário configurar um SMTP próprio (veja a seção 8).
 

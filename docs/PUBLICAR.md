@@ -3,12 +3,12 @@
 O app é publicado de graça no **GitHub Pages** (HTTPS), e de lá qualquer pessoa convidada instala no celular como um aplicativo (PWA). Não passa por Play Store nem App Store.
 
 ## 1. Criar o repositório (uma vez)
-1. Em https://github.com/new crie o repositório `controlefinanceiro-pwa`.
+1. Em https://github.com/new crie o repositório `controle-financeiro-pwa`.
    - **Público**: obrigatório para usar o GitHub Pages no plano gratuito. Não há dados pessoais no código: extratos, planilhas, `.env.local` e `Dados para ajustes/` estão no `.gitignore`.
    - Não marque "Add a README" (o repositório precisa nascer vazio).
 2. No PC, na pasta do projeto:
    ```bash
-   git remote add origin https://github.com/SEU-USUARIO/controlefinanceiro-pwa.git
+   git remote add origin https://github.com/jhonyninho/controle-financeiro-pwa.git
    git push -u origin main
    ```
    Na primeira vez o Windows abre o navegador para você entrar na conta do GitHub.
@@ -21,10 +21,10 @@ No repositório, no GitHub:
 2. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 3. **Actions → Publicar no GitHub Pages → Run workflow** (ou faça qualquer push na `main`).
 
-O workflow (`.github/workflows/deploy.yml`) roda os testes, gera o build com o caminho `/controlefinanceiro-pwa/`, confere que nenhuma chave secreta entrou no build e publica. O endereço fica:
+O workflow (`.github/workflows/deploy.yml`) roda os testes, gera o build com o caminho `/controle-financeiro-pwa/`, confere que nenhuma chave secreta entrou no build e publica. O endereço fica:
 
 ```
-https://SEU-USUARIO.github.io/controlefinanceiro-pwa/
+https://jhonyninho.github.io/controle-financeiro-pwa/
 ```
 
 3. No Supabase, coloque esse endereço em **Authentication → URL Configuration** (Site URL e Redirect URLs, veja `SETUP-SUPABASE.md`), senão os links de convite e de redefinir senha voltam para o lugar errado.
