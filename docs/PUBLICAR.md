@@ -64,8 +64,8 @@ As chaves ficam só no aparelho em que forem cadastradas (celular e PC precisam 
 
 **Saudações gravadas (uma vez, no PC do dono do app):** as falas de boas-vindas do assistente são sorteadas a cada entrada e tocam de arquivos MP3 do próprio site, sem gastar cota. Para gravá-las com a voz do Gemini:
 ```powershell
-$env:GEMINI_API_KEY="sua-chave-do-gemini"; npm run gerar-falas
+$env:GEMINI_API_KEY="sua-chave-do-gemini"; node scripts/gerar-falas.mjs
 ```
-Grava em `public/falas/` (cerca de 60 falas, em poucos pedidos). Se a cota do dia acabar, rode de novo no dia seguinte: ele continua de onde parou. Opções: `$env:VOZ="Orus"` (outra voz), `$env:TRATAMENTOS="senhor"` (só um tratamento, gasta menos), `$env:FORCAR="1"` (regravar tudo). Depois, faça commit e push para publicar. Enquanto não houver gravações, as saudações sorteadas são lidas com a voz do navegador.
+Grava em `public/falas/` (cerca de 60 falas; a cota grátis de voz é de uns 10 pedidos por dia, e as aberturas são gravadas primeiro). Se a cota do dia acabar, rode de novo no dia seguinte: ele continua de onde parou. Opções: `$env:VOZ="Orus"` (outra voz), `$env:TRATAMENTOS="senhor"` (só um tratamento, gasta menos), `$env:FORCAR="1"` (regravar tudo). Depois, faça commit e push para publicar. Enquanto não houver gravações, as saudações sorteadas são lidas com a voz do navegador.
 
 Toque em **Testar voz** para ouvir antes de salvar.

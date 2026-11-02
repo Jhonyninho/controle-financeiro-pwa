@@ -1,20 +1,20 @@
 // Grava as saudações do assistente com a voz neural do Gemini (uma vez só) em public/falas/*.mp3.
 //
-// Uso (PowerShell):
-//   $env:GEMINI_API_KEY="sua-chave"; npm run gerar-falas
+// Uso (PowerShell; "node" direto funciona mesmo com a execução de scripts .ps1 bloqueada):
+//   $env:GEMINI_API_KEY="sua-chave"; node scripts/gerar-falas.mjs
 // Opções (variáveis de ambiente):
 //   VOZ=Charon            voz do Gemini (Charon, Orus, Iapetus, Algenib, Fenrir, Kore, Sulafat, Aoede)
 //   TRATAMENTOS=senhor    grava só esses tratamentos (senhor, senhora, neutro), para gastar menos cota
 //   FORCAR=1              regrava tudo (por exemplo, para ouvir outra interpretação)
 //
-// Para poupar a cota grátis (poucos pedidos de voz por dia), várias frases vão num pedido só,
+// A cota grátis de voz é de ~10 pedidos por dia. Para poupar, várias frases vão num pedido só,
 // com pausas longas entre elas; o áudio é cortado nos silêncios. Se a cota do dia acabar, rode
 // de novo no dia seguinte: o que já foi gravado fica e o script continua de onde parou.
 // A chave só é usada aqui, no seu PC; nada dela vai para o repositório.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { todasAsFalas } from '../src/lib/saudacoes.js';
-import { MODELOS_TTS, NOME_PADRAO, VOZES_GEMINI, instrucaoDeFala } from '../src/servicos/voz.js';
+import { MODELOS_TTS, VOZES_GEMINI } from '../src/servicos/voz.js';
 import { codificarMp3, dividirPorSilencio, pcm16ParaFloat, recortar } from './audio-falas.mjs';
 
 const CHAVE = process.env.GEMINI_API_KEY || '';
@@ -26,7 +26,7 @@ const DIR = new URL('../public/falas/', import.meta.url);
 const INDICE = new URL('indice.json', DIR);
 
 if (!CHAVE) {
-  console.error('Defina a chave antes:  $env:GEMINI_API_KEY="sua-chave"; npm run gerar-falas');
+  console.error('Defina a chave antes:  $env:GEMINI_API_KEY="sua-chave"; node scripts/gerar-falas.mjs');
   process.exit(1);
 }
 if (!VOZES_GEMINI.some((v) => v.id === VOZ)) {
@@ -42,7 +42,10 @@ const feitas = new Set(indice.ids);
 const salvarIndice = () => writeFileSync(INDICE, `${JSON.stringify({ ...indice, ids: [...feitas].sort() }, null, 2)}\n`);
 
 const tratamentoDoId = (id) => id.split('-')[2];
-const pendentes = todasAsFalas().filter((f) => !feitas.has(f.id) && (!f.id.startsWith('a-') || TRATAMENTOS.includes(tratamentoDoId(f.id))));
+const prioridade = (id) => (id.startsWith('a-') ? 0 : id.startsWith('c-geral-') ? 1 : 2);
+const pendentes = todasAsFalas()
+  .filter((f) => !feitas.has(f.id) && (!f.id.startsWith('a-') || TRATAMENTOS.includes(tratamentoDoId(f.id))))
+  .sort((a, b) => prioridade(a.id) - prioridade(b.id));
 console.log(`Voz ${VOZ}: ${feitas.size} falas já gravadas, ${pendentes.length} a gravar.`);
 
 class SemCotaHoje extends Error {}
@@ -63,8 +66,10 @@ async function sintetizar(texto) {
       if (r.ok) {
         const j = await r.json();
         const parte = j?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
-        if (!parte) throw new Error('O Gemini não devolveu áudio.');
-        return pcm16ParaFloat(Buffer.from(parte.inlineData.data, 'base64'));
+        if (parte) return pcm16ParaFloat(Buffer.from(parte.inlineData.data, 'base64'));
+        // às vezes o modelo responde sem áudio (finishReason OTHER); quem chamou tenta com menos frases
+        console.log(`  o Gemini respondeu sem áudio (${j?.candidates?.[0]?.finishReason || j?.promptFeedback?.blockReason || 'sem motivo'}).`);
+        return null;
       }
       const detalhe = await r.text();
       if (r.status === 404) break; // modelo indisponível: tenta o próximo
@@ -92,26 +97,37 @@ const gravar = (id, pcm) => {
   feitas.add(id);
 };
 
-const umaFala = instrucaoDeFala('assistente', NOME_PADRAO);
-const variasFalas = `${umaFala.replace('Leia o texto abaixo', 'Leia as frases abaixo, uma por linha,').replace(/:$/, '')}. ` +
-  'Faça uma pausa longa e totalmente silenciosa de dois segundos entre uma frase e a seguinte. Não leia números nem marcadores:';
+// Instrução curta: textos longos de "papel" fazem o modelo de voz às vezes responder sem áudio.
+const ESTILO = 'Leia em português do Brasil, com voz grave, serena e formal de assistente virtual, dicção impecável e ritmo pausado';
+const prompt = (lote) => (lote.length === 1
+  ? `${ESTILO}:\n\n${lote[0].texto}`
+  : `${ESTILO}. Faça uma pausa de dois segundos entre as frases:\n\n${lote.map((f) => f.texto).join('\n\n')}`);
+
+/** Grava um lote; se vier sem áudio ou não der para separar, divide o lote ao meio e tenta de novo. */
+async function gravarLote(lote) {
+  const pcm = await sintetizar(prompt(lote));
+  const cortes = pcm && dividirPorSilencio(pcm, lote.map((f) => f.texto));
+  if (cortes) {
+    lote.forEach((f, k) => gravar(f.id, cortes[k]));
+    return;
+  }
+  if (pcm && lote.length === 1) {
+    gravar(lote[0].id, recortar(pcm)); // uma frase só: aproveita o áudio inteiro
+    return;
+  }
+  if (lote.length === 1) throw new Error(`O Gemini não gerou áudio para: "${lote[0].texto}"`);
+  if (pcm) console.log('  não consegui separar as frases; dividindo o lote…');
+  const meio = Math.ceil(lote.length / 2);
+  await gravarLote(lote.slice(0, meio));
+  salvarIndice();
+  await gravarLote(lote.slice(meio));
+}
 
 try {
   for (let i = 0; i < pendentes.length; i += POR_PEDIDO) {
     const lote = pendentes.slice(i, i + POR_PEDIDO);
     console.log(`Gravando ${i + 1} a ${i + lote.length} de ${pendentes.length}…`);
-    const pcm = await sintetizar(`${variasFalas}\n\n${lote.map((f) => f.texto).join('\n\n')}`);
-    const cortes = dividirPorSilencio(pcm, lote.map((f) => f.texto));
-    if (cortes) {
-      lote.forEach((f, k) => gravar(f.id, cortes[k]));
-    } else {
-      // não deu para separar com segurança: grava uma por pedido (gasta mais cota)
-      console.log('  não consegui separar as frases; gravando uma por pedido…');
-      for (const f of lote) {
-        const um = await sintetizar(`${umaFala}\n\n${f.texto}`);
-        gravar(f.id, dividirPorSilencio(um, [f.texto])?.[0] || recortar(um));
-      }
-    }
+    await gravarLote(lote);
     salvarIndice();
   }
   salvarIndice();
@@ -119,7 +135,7 @@ try {
 } catch (e) {
   salvarIndice();
   if (e instanceof SemCotaHoje) {
-    console.log(`A cota de voz do Gemini acabou por hoje. ${feitas.size} falas gravadas até agora; rode de novo amanhã para continuar.`);
+    console.log(`A cota de voz do Gemini acabou por hoje (cerca de 10 pedidos por dia). ${feitas.size} falas gravadas até agora; rode de novo amanhã para continuar.`);
   } else {
     console.error(e.message);
     process.exitCode = 1;
