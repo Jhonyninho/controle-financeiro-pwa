@@ -80,4 +80,27 @@ describe('planejarFixas', () => {
     ]);
     expect(r.every((p) => p.serie_tipo === 'FIXA' && p.status === 'PREVISTO')).toBe(true);
   });
+
+  it('com nome da categoria: a previsão leva a categoria, não a descrição do mês anterior', () => {
+    const nome = (id) => ({ aluguel: 'Moradia › Aluguel' })[id];
+    const realizados = [real('2026-10-05', 1800, 'PIX JOAO SILVA ALUGUEL OUT', 'aluguel')];
+    // previsão criada antes com o nome da categoria ocupa dezembro
+    const previstos = [prev('x', '2026-12-05', 1800, 'Moradia › Aluguel', { categoria_id: 'aluguel' })];
+    const r = planejarFixas(realizados, previstos, fixa, '2026-11-01', 3, nome);
+    expect(r.map((p) => [p.data, p.descricao])).toEqual([
+      ['2026-11-05', 'Moradia › Aluguel'],
+      ['2027-01-05', 'Moradia › Aluguel'],
+    ]);
+    expect(r[0].origem.descricao).toBe('PIX JOAO SILVA ALUGUEL OUT');
+  });
+});
+
+describe('conciliarPrevistos com previsão pelo nome da categoria', () => {
+  it('conta de valor variável substitui a previsão da mesma categoria', () => {
+    const previstos = [prev('p1', '2026-11-08', 189.77, 'Moradia › Energia', { categoria_id: 'luz' })];
+    const itens = [item('2026-11-09', 205.4, 'ENEL DISTRIBUICAO')];
+    expect(conciliarPrevistos(itens, previstos, 'bb').size).toBe(0); // sem saber a categoria, não arrisca
+    const r = conciliarPrevistos(itens, previstos, 'bb', 7, () => 'luz');
+    expect(r.get(0)?.id).toBe('p1');
+  });
 });

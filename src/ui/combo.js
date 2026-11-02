@@ -156,7 +156,15 @@ document.addEventListener('click', (e) => {
   }
   if (aberto && !e.target.closest('.combo-painel')) fechar(false);
 });
-window.addEventListener('resize', () => fechar(false));
+// No celular, focar a busca abre o teclado virtual, que muda só a altura da janela. Fechar aí
+// escondia o teclado, que disparava outro resize: o painel abria e fechava sem parar.
+let larguraJanela = window.innerWidth;
+window.addEventListener('resize', () => {
+  if (window.innerWidth !== larguraJanela) {
+    larguraJanela = window.innerWidth;
+    fechar(false);
+  } else if (aberto) posicionar();
+});
 document.addEventListener('scroll', (e) => {
   if (aberto && !e.target.closest?.('.combo-painel')) posicionar();
 }, true);

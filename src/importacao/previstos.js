@@ -78,7 +78,7 @@ export function gerarParcelas(base, { atual, total, valor, primeiraData, serieId
  * Cada previsto é usado no máximo uma vez.
  * @returns Map índiceDoItem -> previsto
  */
-export function conciliarPrevistos(itens, previstos, contaId, maxDias = 7) {
+export function conciliarPrevistos(itens, previstos, contaId, maxDias = 7, categoriaDe = null) {
   const livres = previstos.filter((p) => p.status === 'PREVISTO' && p.conta_id === contaId);
   const usados = new Set();
   const saida = new Map();
@@ -90,7 +90,10 @@ export function conciliarPrevistos(itens, previstos, contaId, maxDias = 7) {
       if (usados.has(p.id) || p.tipo !== it.tipo) continue;
       const dias = diasEntre(p.data, it.data);
       if (dias > maxDias) continue;
-      const sim = semelhanca(p.descricao, it.descricao);
+      // previsões de despesa fixa levam o nome da categoria (não a descrição do banco):
+      // a mesma categoria conta como descrição parecida
+      const mesmaCategoria = Boolean(p.categoria_id && categoriaDe && categoriaDe(it) === p.categoria_id);
+      const sim = Math.max(semelhanca(p.descricao, it.descricao), mesmaCategoria ? 0.5 : 0);
       const cIt = centavos(it.valor);
       const cP = centavos(p.valor);
       let nota = 0;
@@ -113,13 +116,17 @@ export function conciliarPrevistos(itens, previstos, contaId, maxDias = 7) {
  * Despesas fixas sem previsão nos próximos meses.
  * Pega o último pagamento de cada despesa fixa (mesma conta + descrição) e projeta
  * o mesmo valor para os `meses` seguintes, pulando meses que já têm previsto ou realizado.
+ * A previsão leva o nome da categoria como descrição (ex.: "Moradia › Aluguel"), não o texto
+ * do extrato do mês anterior; sem categoria, mantém a descrição original.
  * @param {object[]} realizados lançamentos REALIZADO recentes
  * @param {object[]} previstos lançamentos PREVISTO existentes
  * @param {(l) => boolean} ehFixa
  * @param {string} hoje 'AAAA-MM-DD' (não cria previsões no passado)
+ * @param {(categoriaId) => string} [nomeCategoria] rótulo da categoria para a descrição
  */
-export function planejarFixas(realizados, previstos, ehFixa, hoje, meses = 3) {
+export function planejarFixas(realizados, previstos, ehFixa, hoje, meses = 3, nomeCategoria = null) {
   const chave = (l) => `${l.conta_id}|${l.tipo}|${chaveDescricao(l.descricao)}`;
+  const chaveCat = (l, mes) => `${l.conta_id}|${l.tipo}|${l.categoria_id}|${mes}`;
   const ultimos = new Map();
   for (const l of realizados) {
     if (l.tipo !== 'SAIDA' || !ehFixa(l) || !chaveDescricao(l.descricao)) continue;
@@ -127,12 +134,29 @@ export function planejarFixas(realizados, previstos, ehFixa, hoje, meses = 3) {
     if (!ultimos.has(k) || ultimos.get(k).data < l.data) ultimos.set(k, l);
   }
   const ocupado = new Set([...realizados, ...previstos].map((l) => `${chave(l)}|${l.data.slice(0, 7)}`));
+  // previsões já criadas com o nome da categoria: cada uma cobre uma despesa daquela categoria no mês
+  const previstasPorCategoria = new Map();
+  for (const p of previstos) {
+    if (!p.categoria_id) continue;
+    const k = chaveCat(p, p.data.slice(0, 7));
+    previstasPorCategoria.set(k, (previstasPorCategoria.get(k) || 0) + 1);
+  }
 
   const saida = [];
   for (const [k, l] of ultimos) {
+    const rotulo = (l.categoria_id && nomeCategoria?.(l.categoria_id)) || l.descricao;
     for (let i = 1; i <= meses; i++) {
       const data = somarMesesData(l.data, i);
-      if (data < hoje || ocupado.has(`${k}|${data.slice(0, 7)}`)) continue;
+      const mes = data.slice(0, 7);
+      if (data < hoje || ocupado.has(`${k}|${mes}`)) continue;
+      if (l.categoria_id && rotulo !== l.descricao) {
+        const kc = chaveCat(l, mes);
+        const livres = previstasPorCategoria.get(kc) || 0;
+        if (livres > 0) {
+          previstasPorCategoria.set(kc, livres - 1);
+          continue;
+        }
+      }
       saida.push({
         tipo: 'SAIDA',
         conta_id: l.conta_id,
@@ -142,7 +166,7 @@ export function planejarFixas(realizados, previstos, ehFixa, hoje, meses = 3) {
         status: 'PREVISTO',
         valor: Number(l.valor),
         data,
-        descricao: l.descricao,
+        descricao: rotulo.slice(0, 200),
         serie_tipo: 'FIXA',
         origem: l, // só para a tela de confirmação (não vai para o banco)
       });

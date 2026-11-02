@@ -201,7 +201,7 @@ async function processarArquivo(el, arquivo, contaId, ehFatura) {
   itens.forEach((it) => {
     it.duplicado = Boolean(it.hash && existentes.has(it.hash));
   });
-  const previstosAchados = conciliarPrevistos(itens, futuros, contaId);
+  const previstosAchados = conciliarPrevistos(itens, futuros, contaId, 7, (it) => (it.erros.length ? null : classificar(it).categoria_id));
 
   itens.forEach((it, idx) => {
     if (ehFatura) it.forma_pagamento = 'Crédito';

@@ -19,7 +19,7 @@ export async function planoDeFixas(previstos) {
     api.lancamentosEntreDatas(somarDias(hoje, -75), hoje),
     previstos ? Promise.resolve(previstos) : api.listarFuturos(),
   ]);
-  return planejarFixas(realizados, futuros, (l) => ehFixa(l, categoriaPorId), hoje, MESES_A_PREVER);
+  return planejarFixas(realizados, futuros, (l) => ehFixa(l, categoriaPorId), hoje, MESES_A_PREVER, nomeCategoria);
 }
 
 export function oferecerFixas(plano, aoConcluir) {
@@ -27,14 +27,14 @@ export function oferecerFixas(plano, aoConcluir) {
     titulo: 'Prever despesas fixas',
     intro: html`<p>Estas despesas fixas foram pagas recentemente e ainda não têm previsão para os próximos ${MESES_A_PREVER} meses.
       O valor usado é o do último pagamento. Quando o extrato chegar, a importação troca cada previsão pelo lançamento real.</p>`,
-    itens: plano.map((p, i) => ({ ...p, chave: i, nota: nomeCategoria(p.categoria_id) })),
+    itens: plano.map((p, i) => ({ ...p, chave: i, nota: `último pagamento: ${p.origem.descricao}` })),
     textoOk: (n) => (n ? `Criar ${n} previsão(ões)` : 'Nada selecionado'),
     async aoConfirmar(indices) {
       if (!indices.length) return;
       const series = new Map();
       const lista = indices.map((i) => {
         const { origem, ...p } = plano[i];
-        const k = `${p.conta_id}|${p.descricao}`;
+        const k = `${p.conta_id}|${origem.descricao}`; // uma série por despesa (várias podem ter a mesma categoria)
         if (!series.has(k)) series.set(k, origem.serie_id || crypto.randomUUID());
         return { ...p, serie_id: series.get(k) };
       });

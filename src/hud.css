@@ -159,9 +159,14 @@
 /* ---------- acesso autorizado ---------- */
 .hud-liberado {
   position: fixed !important; inset: 0; z-index: 5 !important; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-  background: radial-gradient(circle at center, rgba(2, 6, 15, 0.5), rgba(2, 6, 15, 0.92));
+  background: radial-gradient(circle at center, rgba(2, 6, 15, 0.82), rgba(2, 6, 15, 0.96));
   opacity: 0; animation: aparecer 0.35s forwards;
 }
+/* o formulário e a saudação digitada saem antes do "acesso autorizado": no celular eles ficam
+   bem no centro da tela e apareciam por baixo do título */
+.auth.hud-autorizado .hud-lado,
+.auth.hud-autorizado .hud-leituras { animation: sumir 0.25s forwards; }
+@keyframes sumir { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
 .hud-liberado-titulo { font: 600 clamp(1.6rem, 4vw, 3rem) var(--fonte-hud); letter-spacing: 0.4em; text-transform: uppercase; color: var(--holo); text-shadow: 0 0 24px var(--holo); }
 .hud-liberado-nome { font: 500 1.3rem var(--fonte-hud); letter-spacing: 0.12em; color: var(--gelo); }
 .auth.hud-autorizado .hud-reator { animation: autorizar 1.5s ease-out forwards; }
