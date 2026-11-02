@@ -2,7 +2,7 @@
 // Dados financeiros NUNCA são guardados em cache: requisições ao Supabase
 // (e qualquer outra origem) passam direto pela rede.
 
-const CACHE = 'cf-v1.5.0';
+const CACHE = 'cf-v1.0.0';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './manifest.webmanifest', './icons/icon-192.png'])));
