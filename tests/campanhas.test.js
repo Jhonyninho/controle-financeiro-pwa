@@ -88,15 +88,30 @@ describe('voz: blocos e saudação', () => {
   });
 });
 
-import { NOME_PADRAO, instrucaoDeFala, nomeAssistenteValido } from '../src/servicos/voz.js';
+import { NOME_PADRAO, instrucaoDeFala, nomeAssistenteValido, nomeFalado } from '../src/servicos/voz.js';
 import { PROMPT_SISTEMA, promptSistema } from '../src/servicos/ia.js';
 
 describe('assistente próprio', () => {
-  it('nome do assistente só com letras (vai para a fala e para o prompt)', () => {
-    expect(nomeAssistenteValido('  Vega  ')).toBe('Vega');
+  it('nome do assistente só com letras e pontos (vai para a fala e para o prompt)', () => {
+    expect(nomeAssistenteValido('  Órion  ')).toBe('Órion');
+    expect(nomeAssistenteValido('M.A.V.I.Z.')).toBe('M.A.V.I.Z.');
+    expect(nomeAssistenteValido('Vega')).toBe(NOME_PADRAO); // antigo padrão migra para M.A.V.I.Z.
     expect(nomeAssistenteValido('Órion-7 <script>')).toBe('Órion- script');
     expect(nomeAssistenteValido('')).toBe(NOME_PADRAO);
     expect(nomeAssistenteValido('x'.repeat(40))).toHaveLength(20);
+  });
+
+  it('sigla com pontos é falada como palavra', () => {
+    expect(NOME_PADRAO).toBe('M.A.V.I.Z.');
+    expect(nomeFalado('M.A.V.I.Z.')).toBe('Maviz');
+    expect(nomeFalado('M.A.V.I.Z')).toBe('Maviz');
+    expect(nomeFalado('Órion')).toBe('Órion');
+  });
+
+  it('saudação com tratamento formal', () => {
+    expect(textoSaudacao('Rafael Augusto', { hora: 9, dia: 4, assistente: 'M.A.V.I.Z.', tratamento: 'senhor' })).toBe(
+      'Bom dia, senhor Rafael. Aqui é M.A.V.I.Z., sistemas financeiros online. Bora cuidar da vida financeira?',
+    );
   });
 
   it('saudação na voz da personagem', () => {

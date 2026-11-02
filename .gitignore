@@ -26,3 +26,6 @@ Thumbs.db
 # Material de apoio local (prints com dados reais, áudios de terceiros)
 Dados para ajustes/
 *.mp3
+
+# Notas locais de planejamento
+M.A.V.I.Z.md

@@ -1,4 +1,9 @@
-// Diagnóstico financeiro com a API do Google Gemini (camada gratuita).
+// Diagnóstico financeiro com IA, usando a chave gratuita do próprio usuário.
+//
+// Provedores (todos chamados direto do navegador, sem servidor):
+//  - Groq: grátis, sem cartão e muito rápido (Llama 3.3 70B). Recomendado.
+//  - OpenRouter: modelos gratuitos variados (":free").
+//  - Google Gemini: camada gratuita pequena; também fornece uma das vozes neurais.
 //
 // Privacidade:
 //  - a chave é do próprio usuário e fica só neste navegador (localStorage), nunca no banco;
@@ -9,11 +14,47 @@
 const API = 'https://generativelanguage.googleapis.com/v1beta';
 const CHAVE_CONFIG = 'cf.ia';
 const CHAVE_USO = 'cf.ia.uso';
-const MODELO_PADRAO = 'gemini-2.5-flash';
 
 export const LIMITES_PADRAO = { porMinuto: 5, porDia: 100 };
 
 export class ErroIA extends Error {}
+
+// Modelos com cota na camada gratuita do Gemini, em ordem de preferência. Nomes novos
+// que aparecem na listagem (ex.: "omni", "pro") muitas vezes têm cota 0 no free tier.
+export const MODELOS_GRATUITOS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-flash-lite-latest', 'gemini-flash-latest'];
+
+export const PROVEDORES = {
+  groq: {
+    nome: 'Groq',
+    descricao: 'grátis, sem cartão e muito rápido (recomendado)',
+    site: 'https://console.groq.com/keys',
+    api: 'https://api.groq.com/openai/v1',
+    modelos: ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'llama-3.1-8b-instant'],
+    jsonNativo: true,
+    limites: { porMinuto: 10, porDia: 300 },
+  },
+  openrouter: {
+    nome: 'OpenRouter',
+    descricao: 'modelos gratuitos variados, cerca de 50 análises por dia',
+    site: 'https://openrouter.ai/settings/keys',
+    api: 'https://openrouter.ai/api/v1',
+    modelos: [
+      'meta-llama/llama-3.3-70b-instruct:free', 'deepseek/deepseek-chat-v3-0324:free', 'qwen/qwen-2.5-72b-instruct:free',
+      'mistralai/mistral-small-3.2-24b-instruct:free', 'google/gemma-3-27b-it:free',
+    ],
+    jsonNativo: false,
+    limites: { porMinuto: 5, porDia: 45 },
+  },
+  gemini: {
+    nome: 'Google Gemini',
+    descricao: 'cota gratuita pequena e respostas mais lentas',
+    site: 'https://aistudio.google.com/apikey',
+    modelos: MODELOS_GRATUITOS,
+    limites: LIMITES_PADRAO,
+  },
+};
+
+const modeloValido = (m) => typeof m === 'string' && /^[A-Za-z0-9._:/-]{3,80}$/.test(m);
 
 // ---------------------------------------------------------------------
 // Configuração (por navegador)
@@ -33,22 +74,59 @@ function gravar(chave, valor) {
   }
 }
 
+/**
+ * Configuração da IA neste aparelho. Versões antigas guardavam só { chave, modelo } do Gemini.
+ * Devolve também `chave`/`modelo` do provedor ativo, por conveniência.
+ */
 export function configIA() {
-  const c = ler(CHAVE_CONFIG, {});
+  const c = ler(CHAVE_CONFIG, {}) || {};
+  const chaves = { groq: '', openrouter: '', gemini: '' };
+  for (const p of Object.keys(chaves)) if (typeof c.chaves?.[p] === 'string') chaves[p] = c.chaves[p];
+  if (!chaves.gemini && typeof c.chave === 'string') chaves.gemini = c.chave;
+  const modelos = {};
+  for (const p of Object.keys(chaves)) if (modeloValido(c.modelos?.[p])) modelos[p] = c.modelos[p];
+  if (!modelos.gemini && modeloValido(c.modelo)) modelos.gemini = c.modelo;
+
+  const provedor = PROVEDORES[c.provedor] ? c.provedor : chaves.gemini && !chaves.groq ? 'gemini' : 'groq';
+  const lim = PROVEDORES[provedor].limites;
   return {
-    chave: typeof c.chave === 'string' ? c.chave : '',
-    modelo: /^[a-z0-9.-]{3,60}$/.test(c.modelo || '') ? c.modelo : MODELO_PADRAO,
-    porMinuto: Number(c.porMinuto) > 0 ? Math.min(Number(c.porMinuto), 60) : LIMITES_PADRAO.porMinuto,
-    porDia: Number(c.porDia) > 0 ? Math.min(Number(c.porDia), 2000) : LIMITES_PADRAO.porDia,
+    provedor,
+    chaves,
+    modelos,
+    chave: chaves[provedor],
+    modelo: modelos[provedor] || PROVEDORES[provedor].modelos[0],
+    porMinuto: Number(c.porMinuto) > 0 ? Math.min(Number(c.porMinuto), 60) : lim.porMinuto,
+    porDia: Number(c.porDia) > 0 ? Math.min(Number(c.porDia), 2000) : lim.porDia,
+    limitesProprios: Number(c.porMinuto) > 0 || Number(c.porDia) > 0,
   };
 }
 
-export function salvarConfigIA(c) {
-  const atual = configIA();
-  gravar(CHAVE_CONFIG, { ...atual, ...c });
+/** m: { provedor?, chave? (do provedor), modelo?, porMinuto?, porDia? } */
+export function salvarConfigIA(m = {}) {
+  const bruto = ler(CHAVE_CONFIG, {}) || {};
+  const a = configIA();
+  const provedor = PROVEDORES[m.provedor] ? m.provedor : a.provedor;
+  const chaves = { ...a.chaves };
+  if (typeof m.chave === 'string') chaves[provedor] = m.chave.trim();
+  const modelos = { ...a.modelos };
+  if (modeloValido(m.modelo)) modelos[provedor] = m.modelo;
+  gravar(CHAVE_CONFIG, {
+    provedor,
+    chaves,
+    modelos,
+    porMinuto: 'porMinuto' in m ? m.porMinuto : bruto.porMinuto,
+    porDia: 'porDia' in m ? m.porDia : bruto.porDia,
+  });
 }
 
-export function esquecerChaveIA() {
+/** Apaga a chave de um provedor (ou toda a configuração da IA, sem argumento). */
+export function esquecerChaveIA(provedor) {
+  if (PROVEDORES[provedor]) {
+    const bruto = ler(CHAVE_CONFIG, {}) || {};
+    const chaves = { ...configIA().chaves, [provedor]: '' };
+    gravar(CHAVE_CONFIG, { ...bruto, chave: undefined, chaves });
+    return;
+  }
   try {
     localStorage.removeItem(CHAVE_CONFIG);
     localStorage.removeItem(CHAVE_USO);
@@ -140,15 +218,30 @@ Regras:
  * Personalidade do assistente (o nome é o do assistente, nunca o do usuário). O texto também é
  * narrado em voz, então: frases curtas, sem siglas soltas e com valores fáceis de falar.
  */
-export function promptSistema(assistente) {
+export function promptSistema(assistente, { tratamento = null } = {}) {
   if (!assistente) return PROMPT_SISTEMA;
+  const comoTratar = tratamento === 'senhor' || tratamento === 'senhora'
+    ? `Trate o usuário com respeito por "${tratamento}" (sem nome próprio).`
+    : 'Dirija-se ao usuário de forma cordial, sem pronome de tratamento e sem nome próprio.';
   return `${PROMPT_SISTEMA}
 
-Personalidade: você é ${assistente}, o assistente financeiro de inteligência artificial deste app.
-Fale como um assistente de IA sofisticado: preciso, elegante, confiante e com um leve humor seco,
-sempre gentil. Pode usar expressões como "análise concluída", "detectei", "recomendo". O texto será lido em voz alta:
-prefira frases curtas e naturais de ouvir.`;
+Personalidade: você é ${assistente}, o assistente virtual de inteligência artificial deste app de finanças.
+Seja extremamente sofisticado, culto, cortês e sutilmente irônico quando apropriado, sempre gentil.
+Use português do Brasil com vocabulário formal, elegante e preciso, de polidez quase britânica.
+${comoTratar}
+Seja conciso e direto. Pode usar expressões como "análise concluída", "detectei", "recomendo".
+O texto será lido em voz alta: frases limpas e curtas, sem siglas soltas, naturais de ouvir.
+Não fale o próprio nome no meio do texto.`;
 }
+
+/** Formato da resposta para provedores sem esquema nativo (Groq/OpenRouter). */
+const FORMATO_JSON = `
+Responda SOMENTE com um objeto JSON válido (sem markdown, sem texto antes ou depois), exatamente com estas chaves:
+{"resumo": "diagnóstico geral em 2 a 4 frases",
+ "pontos_fortes": ["..."],
+ "pontos_de_atencao": ["..."],
+ "estrategias": [{"titulo": "...", "acao": "...", "economia_mensal_estimada": 0}],
+ "metas": ["..."]}`;
 
 const ESQUEMA = {
   type: 'OBJECT',
@@ -183,8 +276,16 @@ export function lerRespostaIA(texto) {
   try {
     j = JSON.parse(texto);
   } catch {
-    throw new ErroIA('A IA devolveu uma resposta em formato inesperado. Tente de novo.');
+    // alguns modelos embrulham o JSON em ```json ... ``` ou acrescentam texto em volta
+    const ini = String(texto).indexOf('{');
+    const fim = String(texto).lastIndexOf('}');
+    try {
+      j = JSON.parse(String(texto).slice(ini, fim + 1));
+    } catch {
+      throw new ErroIA('A IA devolveu uma resposta em formato inesperado. Tente de novo.');
+    }
   }
+  if (!j || typeof j !== 'object') throw new ErroIA('A IA devolveu uma resposta em formato inesperado. Tente de novo.');
   return {
     resumo: String(j.resumo || '').slice(0, 1500),
     pontos_fortes: lista(j.pontos_fortes, 6),
@@ -202,11 +303,109 @@ export function lerRespostaIA(texto) {
 // Chamadas
 // ---------------------------------------------------------------------
 
-// Modelos com cota na camada gratuita, em ordem de preferência. Nomes novos
-// que aparecem na listagem (ex.: "omni", "pro") muitas vezes têm cota 0 no free tier.
-export const MODELOS_GRATUITOS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-flash-latest', 'gemini-flash-lite-latest'];
-
 export class ErroCota extends ErroIA {}
+
+// ---- Groq / OpenRouter (API no formato da OpenAI) ----------------------------
+async function chamarCompat(provedor, caminho, { chave, corpo, sinal } = {}) {
+  const p = PROVEDORES[provedor];
+  let r;
+  try {
+    r = await fetch(`${p.api}/${caminho}`, {
+      method: corpo ? 'POST' : 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(chave ? { Authorization: `Bearer ${chave}` } : {}),
+        ...(provedor === 'openrouter' ? { 'X-Title': 'Controle Financeiro' } : {}),
+      },
+      body: corpo ? JSON.stringify(corpo) : undefined,
+      referrerPolicy: 'no-referrer',
+      credentials: 'omit',
+      signal: sinal,
+    });
+  } catch (e) {
+    if (e?.name === 'AbortError') throw e;
+    throw new ErroIA(`Sem conexão com o ${p.nome}.`);
+  }
+  if (r.ok) return r.json();
+  const detalhe = await r.text().catch(() => '');
+  if (r.status === 401 || r.status === 403) throw new ErroIA(`Chave do ${p.nome} inválida. Confira em Configurações.`);
+  if (r.status === 402) throw new ErroCota(`O ${p.nome} pediu créditos para este modelo.`);
+  if (r.status === 429) throw new ErroCota(`Limite gratuito do ${p.nome} atingido por agora. Tente em alguns minutos.`);
+  if (r.status === 404 || /model.*(not|decommission|exist|found|available)/i.test(detalhe)) throw new ErroIA('Modelo indisponível.');
+  if (r.status === 413) throw new ErroIA('Pedido grande demais para o modelo gratuito.');
+  throw new ErroIA(`O ${p.nome} não respondeu (erro ${r.status}). Tente mais tarde.`);
+}
+
+function textoCompat(r) {
+  return r?.choices?.[0]?.message?.content || '';
+}
+
+/** Modelos a tentar, do salvo para os demais da lista do provedor. */
+function ordemDeModelos(provedor, salvo) {
+  const lista = PROVEDORES[provedor].modelos;
+  return [salvo, ...lista.filter((m) => m !== salvo)].filter(Boolean);
+}
+
+async function testarCompat(provedor, chave) {
+  const p = PROVEDORES[provedor];
+  const lista = await chamarCompat(provedor, 'models', { chave: provedor === 'groq' ? chave : undefined });
+  const ids = (lista?.data || []).map((m) => String(m.id || ''));
+  let candidatos = p.modelos.filter((m) => ids.includes(m));
+  if (provedor === 'openrouter') {
+    // a lista de gratuitos muda com frequência: completa com outros ":free"
+    candidatos = [...candidatos, ...ids.filter((id) => id.endsWith(':free') && !candidatos.includes(id) && modeloValido(id)).slice(0, 6)];
+  }
+  if (!candidatos.length) throw new ErroIA(`Nenhum modelo gratuito conhecido disponível no ${p.nome} agora.`);
+  let ultimo;
+  for (const modelo of candidatos) {
+    try {
+      await chamarCompat(provedor, 'chat/completions', {
+        chave,
+        corpo: { model: modelo, messages: [{ role: 'user', content: 'Responda apenas: ok' }], max_tokens: 5 },
+      });
+      return { modelo, modelos: ids };
+    } catch (e) {
+      if (!(e instanceof ErroCota) && e.message !== 'Modelo indisponível.') throw e;
+      ultimo = e;
+    }
+  }
+  throw new ErroIA(`A chave é válida, mas nenhum modelo gratuito respondeu agora (${ultimo?.message}).`);
+}
+
+async function diagnosticoCompat(cfg, payload, { sinal, assistente, tratamento }) {
+  const p = PROVEDORES[cfg.provedor];
+  const mensagens = [
+    { role: 'system', content: `${promptSistema(assistente, { tratamento })}\n${FORMATO_JSON}` },
+    { role: 'user', content: `Dados do mês (JSON):\n${JSON.stringify(payload)}` },
+  ];
+  let ultimo;
+  for (const modelo of ordemDeModelos(cfg.provedor, cfg.modelo)) {
+    try {
+      const r = await chamarCompat(cfg.provedor, 'chat/completions', {
+        chave: cfg.chave,
+        sinal,
+        corpo: {
+          model: modelo,
+          messages: mensagens,
+          temperature: 0.4,
+          max_tokens: 2500,
+          ...(p.jsonNativo ? { response_format: { type: 'json_object' } } : {}),
+        },
+      });
+      const texto = textoCompat(r);
+      if (!texto) throw new ErroIA('A IA não devolveu conteúdo.');
+      if (modelo !== cfg.modelo) salvarConfigIA({ provedor: cfg.provedor, modelo });
+      return lerRespostaIA(texto);
+    } catch (e) {
+      if (e?.name === 'AbortError') throw e;
+      if (!(e instanceof ErroCota) && e.message !== 'Modelo indisponível.') throw e;
+      ultimo = e;
+    }
+  }
+  throw new ErroCota(`${ultimo?.message || 'Sem cota gratuita agora.'} Se acontecer sempre, troque o provedor em Configurações.`);
+}
+
+// ---- Gemini ---------------------------------------------------------------------
 
 export async function chamar(caminho, { chave, corpo, sinal } = {}) {
   let r;
@@ -242,8 +441,13 @@ export async function chamar(caminho, { chave, corpo, sinal } = {}) {
 
 const corpoTeste = { contents: [{ role: 'user', parts: [{ text: 'Responda apenas: ok' }] }], generationConfig: { maxOutputTokens: 8 } };
 
-/** Valida a chave e escolhe o primeiro modelo gratuito que realmente responde. */
-export async function testarChave(chave) {
+/** Valida a chave do provedor e escolhe o primeiro modelo gratuito que realmente responde. */
+export async function testarChave(chave, provedor = 'gemini') {
+  if (provedor !== 'gemini') return testarCompat(provedor, chave);
+  return testarGemini(chave);
+}
+
+async function testarGemini(chave) {
   const r = await chamar('models?pageSize=200', { chave });
   const modelos = (r.models || [])
     .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
@@ -264,24 +468,31 @@ export async function testarChave(chave) {
   throw new ErroIA(`A chave é válida, mas o Google não liberou cota gratuita agora (${ultimo?.message || 'erro 429'}). Tente de novo em alguns minutos.`);
 }
 
-export async function gerarDiagnostico(payload, { sinal, assistente = null } = {}) {
+export async function gerarDiagnostico(payload, { sinal, assistente = null, tratamento = null } = {}) {
   const cfg = configIA();
-  if (!cfg.chave) throw new ErroIA('Cadastre sua chave do Gemini em Configurações.');
+  if (!cfg.chave) throw new ErroIA(`Cadastre sua chave do ${PROVEDORES[cfg.provedor].nome} em Configurações.`);
   verificarCota(cfg);
   registrarUso();
+  if (cfg.provedor !== 'gemini') return diagnosticoCompat(cfg, payload, { sinal, assistente, tratamento });
   const corpo = {
-    systemInstruction: { parts: [{ text: promptSistema(assistente) }] },
+    systemInstruction: { parts: [{ text: promptSistema(assistente, { tratamento }) }] },
     contents: [{ role: 'user', parts: [{ text: `Dados do mês (JSON):\n${JSON.stringify(payload)}` }] }],
-    generationConfig: { temperature: 0.4, maxOutputTokens: 4096, responseMimeType: 'application/json', responseSchema: ESQUEMA },
+    generationConfig: {
+      temperature: 0.4, maxOutputTokens: 4096, responseMimeType: 'application/json', responseSchema: ESQUEMA,
+    },
   };
   // Se o modelo salvo ficar sem cota, tenta os outros modelos gratuitos (cada um tem a sua cota).
   const ordem = [cfg.modelo, ...MODELOS_GRATUITOS.filter((m) => m !== cfg.modelo)];
   let r;
   let ultimo;
   for (const modelo of ordem) {
+    // modelos "flash" 2.5 pensam antes de responder; sem isso a resposta sai em segundos
+    const comPensamento = /^gemini-2\.5-flash/.test(modelo)
+      ? { ...corpo, generationConfig: { ...corpo.generationConfig, thinkingConfig: { thinkingBudget: 0 } } }
+      : corpo;
     try {
-      r = await chamar(`models/${modelo}:generateContent`, { chave: cfg.chave, sinal, corpo });
-      if (modelo !== cfg.modelo) salvarConfigIA({ modelo });
+      r = await chamar(`models/${modelo}:generateContent`, { chave: cfg.chave, sinal, corpo: comPensamento });
+      if (modelo !== cfg.modelo) salvarConfigIA({ provedor: 'gemini', modelo });
       break;
     } catch (e) {
       if (!(e instanceof ErroCota) && !/Modelo indisponível/.test(e.message)) throw e;

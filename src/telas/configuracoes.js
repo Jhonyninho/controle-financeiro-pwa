@@ -1,18 +1,18 @@
 // Configurações: central de cadastros (contas, categorias e regras), perfil e foto,
-// tema do app, chave da IA (Gemini) e informações da versão.
+// tema do app, IA (Groq/OpenRouter/Gemini), voz do assistente e informações da versão.
 
 import * as api from '../servicos/api.js';
 import { html, renderizar } from '../lib/html.js';
 import { VERSAO } from '../lib/versao.js';
 import { icone } from '../assets/icons/index.js';
 import { aplicarTema, estado, TEMAS } from '../estado.js';
-import { $, abrirModal, avisar, avisarErro, comCarregando, confirmar } from '../ui/componentes.js';
-import { configIA, esquecerChaveIA, iaConfigurada, salvarConfigIA, testarChave, usoIA } from '../servicos/ia.js';
+import { $, $$, abrirModal, avisar, avisarErro, comCarregando, confirmar } from '../ui/componentes.js';
+import { PROVEDORES, configIA, esquecerChaveIA, iaConfigurada, salvarConfigIA, testarChave, usoIA } from '../servicos/ia.js';
 import { CORES_HUD, FONTES, TONS_HUD, aplicarAparencia, corDoHud, lerAparencia, precarregarFontes, salvarAparencia } from '../lib/aparencia.js';
 import { avisosDoDia, campanhaDoDia } from '../lib/campanhas.js';
 import { hojeISO } from '../lib/meses.js';
 import {
-  NIVEIS_EFEITO, NOME_PADRAO, VOZES_GEMINI, configVoz, criarNarrador, nomeAssistenteValido, salvarConfigVoz, textoSaudacao, vozesDoNavegador,
+  MOTORES, NIVEIS_EFEITO, motorPronto, NOME_PADRAO, VOZES_AZURE, VOZES_ELEVEN, VOZES_GEMINI, configVoz, criarNarrador, nomeAssistenteValido, salvarConfigVoz, textoSaudacao, vozesDoNavegador,
 } from '../servicos/voz.js';
 import {
   autenticadores, concluirCadastro, iniciarCadastro, removerAutenticadores, sairDeTodosOsAparelhos, trocarSenha,
@@ -122,14 +122,14 @@ function desenhar(el) {
         })}
         ${cartaoAcao({
           acao: 'voz', ico: 'ui-voz', titulo: voz.estilo === 'assistente' ? `Assistente ${voz.assistente}` : 'Assistente e voz',
-          texto: voz.motor === 'gemini'
-            ? `Voz neural ${voz.vozGemini}, timbre ${NIVEIS_EFEITO.find((n) => n.id === voz.efeito)?.nome.toLowerCase() || ''}`
-            : 'Voz do navegador (grátis, sem efeitos)',
+          texto: voz.motor === 'navegador'
+            ? 'Voz do navegador (grátis, sem efeitos)'
+            : `${MOTORES.find((m) => m.id === voz.motor)?.nome}, timbre ${NIVEIS_EFEITO.find((n) => n.id === voz.efeito)?.nome.toLowerCase() || ''}${motorPronto(voz) ? '' : ' (falta a chave)'}`,
           extra: html`<span class="selo ${voz.lerAuto ? 'selo-ok' : ''}">${voz.lerAuto ? 'lê sozinho' : 'ao tocar'}</span>`,
         })}
         ${cartaoAcao({
-          acao: 'ia', ico: 'ui-ia', titulo: 'Diagnóstico com IA (Gemini)',
-          texto: ia ? `Chave cadastrada neste aparelho, modelo ${configIA().modelo}` : 'Cadastre sua chave gratuita do Google AI Studio',
+          acao: 'ia', ico: 'ui-ia', titulo: 'Diagnóstico com IA',
+          texto: ia ? `${PROVEDORES[configIA().provedor].nome}, modelo ${configIA().modelo}` : 'Cadastre uma chave gratuita (Groq: rápida e sem cartão)',
           extra: html`<span class="selo ${ia ? 'selo-ok' : ''}">${ia ? 'ativo' : 'desligado'}</span>`,
         })}
       </div>
@@ -339,13 +339,18 @@ const TEXTO_TESTE = 'Quando você gerar o diagnóstico do mês, eu analiso os n�
 const TEXTO_TESTE_ASSISTENTE = 'Análise de gastos, alertas e metas: tudo sob controle. Quando quiser, gere o diagnóstico do mês e eu explico os resultados.';
 const textoTeste = (c) =>
   c.estilo === 'assistente'
-    ? `${textoSaudacao(estado.perfil?.nome, { assistente: c.assistente })} ${TEXTO_TESTE_ASSISTENTE}`
+    ? `${textoSaudacao(estado.perfil?.nome, { assistente: c.assistente, tratamento: c.tratamento })} ${TEXTO_TESTE_ASSISTENTE}`
     : `${textoSaudacao(estado.perfil?.nome)} ${TEXTO_TESTE}`;
+
+const REGIOES_AZURE = [
+  ['brazilsouth', 'Brazil South (São Paulo)'], ['eastus', 'East US'], ['westeurope', 'West Europe'], ['southcentralus', 'South Central US'],
+];
 
 async function abrirVoz(el) {
   const v = configVoz();
   const vozes = await vozesDoNavegador().catch(() => []);
   const primeiro = (estado.perfil?.nome || '').split(' ')[0] || 'você';
+  const elevenProprio = VOZES_ELEVEN.some((x) => x.id === v.eleven.voz) ? '' : v.eleven.voz;
   let teste = null;
   abrirModal({
     titulo: 'Assistente e voz',
@@ -357,33 +362,82 @@ async function abrirVoz(el) {
       </label>
       <label>Estilo de fala
         <select name="estilo">
-          <option value="assistente" ${v.estilo === 'assistente' ? 'selected' : ''}>Assistente de IA (grave, preciso, humor seco)</option>
+          <option value="assistente" ${v.estilo === 'assistente' ? 'selected' : ''}>Assistente de IA (formal, grave e pausado)</option>
           <option value="natural" ${v.estilo === 'natural' ? 'selected' : ''}>Natural (narrador neutro)</option>
         </select>
       </label>
-      <p class="campo-largo dica">No estilo Assistente de IA, ele se apresenta pelo nome, fala com dicção pausada e bem articulada e o texto do
-        diagnóstico também ganha essa personalidade. É uma personagem própria do app, não imita ninguém.</p>
+      <label>Como ele trata você
+        <select name="tratamento">
+          <option value="nome" ${v.tratamento === 'nome' ? 'selected' : ''}>Pelo nome (${primeiro})</option>
+          <option value="senhor" ${v.tratamento === 'senhor' ? 'selected' : ''}>Senhor</option>
+          <option value="senhora" ${v.tratamento === 'senhora' ? 'selected' : ''}>Senhora</option>
+        </select>
+      </label>
+      <p class="campo-largo dica">No estilo Assistente de IA, ${v.assistente} se apresenta pelo nome, fala de forma polida e cadenciada e o
+        diagnóstico ganha essa personalidade. Siglas com pontos, como M.A.V.I.Z., são faladas como palavra ("Maviz").
+        É uma personagem própria do app, não imita ninguém.</p>
 
       <h3 class="campo-largo titulo-lista-temas">Voz</h3>
-      <fieldset class="campo-largo opcoes-pilula" aria-label="Motor de voz">
-        <label><input type="radio" name="motor" value="gemini" ${v.motor === 'gemini' ? 'checked' : ''} /><span>Voz neural do Gemini</span></label>
-        <label><input type="radio" name="motor" value="navegador" ${v.motor === 'navegador' ? 'checked' : ''} /><span>Voz do navegador</span></label>
+      <fieldset class="campo-largo opcoes-pilula opcoes-coluna" aria-label="Motor de voz">
+        ${MOTORES.map((m) => html`<label>
+          <input type="radio" name="motor" value="${m.id}" ${v.motor === m.id ? 'checked' : ''} />
+          <span><strong>${m.nome}</strong> <small>${m.descricao}</small></span>
+        </label>`)}
       </fieldset>
-      <p class="campo-largo dica"><strong>Gemini:</strong> voz neural mais humana e com os efeitos de IA; usa a mesma chave do diagnóstico e conta no limite
-        diário (o áudio só é gerado quando você toca em Ouvir). <strong>Navegador:</strong> grátis e sem limite, mas sem efeitos.
-        Se a cota do Gemini acabar, o app usa a voz do navegador.</p>
-      <label>Voz do Gemini
-        <select name="vozGemini">${VOZES_GEMINI.map((x) => html`<option value="${x.id}" ${x.id === v.vozGemini ? 'selected' : ''}>${x.id}, ${x.descricao}</option>`)}</select>
-      </label>
-      <label>Timbre de IA (efeito)
+
+      <div class="campo-largo grade-form" data-motor="azure">
+        <p class="campo-largo dica">1. Em <strong>portal.azure.com</strong> crie uma conta gratuita e um recurso <strong>Speech</strong> (Fala) no plano
+          <strong>Free F0</strong>, região <strong>Brazil South</strong>. 2. Em "Chaves e Ponto de Extremidade", copie a <strong>Chave 1</strong>.
+          O plano F0 dá 500 mil caracteres por mês (centenas de diagnósticos) e não cobra nada.</p>
+        <label class="campo-largo">Chave do Azure Speech
+          <input name="azureChave" type="password" autocomplete="off" spellcheck="false" maxlength="200" value="${v.azure.chave}" />
+        </label>
+        <label>Região
+          <select name="azureRegiao">${REGIOES_AZURE.map(([id, nome]) => html`<option value="${id}" ${id === v.azure.regiao ? 'selected' : ''}>${nome}</option>`)}</select>
+        </label>
+        <label>Voz
+          <select name="azureVoz">${VOZES_AZURE.map((x) => html`<option value="${x.id}" ${x.id === v.azure.voz ? 'selected' : ''}>${x.id.replace(/^pt-BR-|Neural$/g, '')}, ${x.descricao}</option>`)}</select>
+        </label>
+      </div>
+
+      <div class="campo-largo grade-form" data-motor="eleven">
+        <p class="campo-largo dica">1. Em <strong>elevenlabs.io</strong> crie uma conta grátis (sem cartão). 2. Em <strong>Developers → API Keys</strong>,
+          crie uma chave com permissão de Text to Speech. O plano grátis dá cerca de 10 mil créditos por mês (alguns diagnósticos).
+          Para uma voz só sua, use o <strong>Voice Design</strong> (descreva, por exemplo, "voz masculina grave, formal, calma e polida"),
+          salve a voz e cole o <strong>Voice ID</strong> abaixo.</p>
+        <label class="campo-largo">Chave da ElevenLabs
+          <input name="elevenChave" type="password" autocomplete="off" spellcheck="false" maxlength="200" value="${v.eleven.chave}" />
+        </label>
+        <label>Voz pronta
+          <select name="elevenVoz">${VOZES_ELEVEN.map((x) => html`<option value="${x.id}" ${x.id === v.eleven.voz ? 'selected' : ''}>${x.descricao}</option>`)}</select>
+        </label>
+        <label>ou ID de uma voz sua
+          <input name="elevenProprio" maxlength="40" pattern="[A-Za-z0-9]{10,40}" value="${elevenProprio}" placeholder="opcional" autocomplete="off" spellcheck="false" />
+        </label>
+      </div>
+
+      <div class="campo-largo grade-form" data-motor="gemini">
+        <p class="campo-largo dica">Usa a chave do Gemini cadastrada em <strong>Diagnóstico com IA</strong>. A cota gratuita de voz do Google é muito
+          pequena; se acabar, o app usa a voz do navegador.</p>
+        <label class="campo-largo">Voz do Gemini
+          <select name="vozGemini">${VOZES_GEMINI.map((x) => html`<option value="${x.id}" ${x.id === v.vozGemini ? 'selected' : ''}>${x.id}, ${x.descricao}</option>`)}</select>
+        </label>
+      </div>
+
+      <div class="campo-largo grade-form" data-motor="navegador">
+        <p class="campo-largo dica">No Android, as vozes "Google português do Brasil" soam melhor; no iPhone, baixe vozes "Aprimoradas" em
+          Ajustes → Acessibilidade → Conteúdo Falado → Vozes.</p>
+        <label class="campo-largo">Voz do navegador
+          <select name="vozNavegador">
+            ${vozes.length
+              ? vozes.map((x) => html`<option value="${x.name}" ${x.name === v.vozNavegador ? 'selected' : ''}>${x.name} (${x.lang})</option>`)
+              : html`<option value="">Padrão do sistema</option>`}
+          </select>
+        </label>
+      </div>
+
+      <label data-so-neural>Timbre de IA (efeito)
         <select name="efeito">${NIVEIS_EFEITO.map((n) => html`<option value="${n.id}" ${n.id === v.efeito ? 'selected' : ''}>${n.nome}: ${n.descricao}</option>`)}</select>
-      </label>
-      <label>Voz do navegador
-        <select name="vozNavegador">
-          ${vozes.length
-            ? vozes.map((x) => html`<option value="${x.name}" ${x.name === v.vozNavegador ? 'selected' : ''}>${x.name} (${x.lang})</option>`)
-            : html`<option value="">Padrão do sistema</option>`}
-        </select>
       </label>
       <label>Velocidade
         <select name="velocidade">${[0.85, 1, 1.1, 1.25, 1.4].map((n) => html`<option value="${n}" ${n === v.velocidade ? 'selected' : ''}>${n === 1 ? 'normal' : `${n}x`}</option>`)}</select>
@@ -391,90 +445,130 @@ async function abrirVoz(el) {
       <span class="campo-acao campo-largo"><button type="button" class="btn btn-secundario" data-testar-voz>Testar voz</button></span>
       <label class="check campo-largo"><input type="checkbox" name="lerAuto" ${v.lerAuto ? 'checked' : ''} /> Ler em voz alta assim que o diagnóstico ficar pronto</label>
       <label class="check campo-largo"><input type="checkbox" name="saudacao" ${v.saudacao ? 'checked' : ''} /> Saudação por voz ao entrar ("Boa noite, ${primeiro}. Aqui é ${v.assistente}…")</label>
-      <p class="campo-largo dica">Com a voz do Gemini, cada saudação é gerada uma única vez e fica guardada neste aparelho: nas próximas entradas toca na hora, sem gastar cota.</p>
+      <p class="campo-largo dica">Com voz neural, cada saudação é gerada uma única vez e fica guardada neste aparelho: nas próximas entradas toca na hora,
+        sem gastar cota. As chaves de voz ficam só neste aparelho.</p>
     </div>`,
     aoMontar(form) {
-      const botao = $('[data-testar-voz]', form);
-      const dados = () => {
-        const fd = new FormData(form);
-        return {
-          assistente: nomeAssistenteValido(fd.get('assistente')), estilo: fd.get('estilo'), efeito: fd.get('efeito'),
-          motor: fd.get('motor'), vozNavegador: fd.get('vozNavegador') || '', vozGemini: fd.get('vozGemini'),
-          velocidade: Number(fd.get('velocidade')),
-        };
+      const mostrarMotor = () => {
+        const m = new FormData(form).get('motor');
+        $$('[data-motor]', form).forEach((d) => (d.hidden = d.dataset.motor !== m));
+        $('[data-so-neural]', form).hidden = m === 'navegador';
       };
+      $$('[name=motor]', form).forEach((r) => r.addEventListener('change', mostrarMotor));
+      mostrarMotor();
+
+      const botao = $('[data-testar-voz]', form);
       botao.addEventListener('click', () => {
         teste?.parar();
         const anterior = configVoz();
-        const d = dados();
+        const d = dadosVoz(Object.fromEntries(new FormData(form)));
         salvarConfigVoz(d); // o narrador lê a configuração salva
-        teste = criarNarrador(textoTeste(d), { aoAviso: (m) => avisar(m, 'erro') }, { vinheta: d.estilo === 'assistente' });
+        teste = criarNarrador(textoTeste(d), { aoAviso: (m) => avisar(m, 'erro') }, { vinheta: d.estilo === 'assistente' && d.motor !== 'navegador' });
         teste.iniciar().catch(avisarErro).finally(() => salvarConfigVoz(anterior));
       });
       form.closest('dialog').addEventListener('close', () => teste?.parar());
     },
     async aoEnviar(f) {
-      salvarConfigVoz({
-        assistente: nomeAssistenteValido(f.assistente), estilo: f.estilo, efeito: f.efeito,
-        motor: f.motor, vozNavegador: f.vozNavegador || '', vozGemini: f.vozGemini,
-        velocidade: Number(f.velocidade), lerAuto: f.lerAuto === 'on', saudacao: f.saudacao === 'on',
-      });
+      salvarConfigVoz({ ...dadosVoz(f), lerAuto: f.lerAuto === 'on', saudacao: f.saudacao === 'on' });
       avisar('Assistente e voz salvos.');
       desenhar(el);
     },
   });
 }
 
+/** Campos do formulário de voz → configuração. */
+function dadosVoz(f) {
+  const proprio = String(f.elevenProprio || '').trim();
+  return {
+    assistente: nomeAssistenteValido(f.assistente),
+    estilo: f.estilo,
+    tratamento: f.tratamento,
+    efeito: f.efeito,
+    motor: f.motor,
+    azure: { chave: String(f.azureChave || '').trim(), regiao: f.azureRegiao, voz: f.azureVoz },
+    eleven: { chave: String(f.elevenChave || '').trim(), voz: /^[A-Za-z0-9]{10,40}$/.test(proprio) ? proprio : f.elevenVoz },
+    vozNavegador: f.vozNavegador || '',
+    vozGemini: f.vozGemini,
+    velocidade: Number(f.velocidade),
+  };
+}
+
 // ---------------------------------------------------------------------
-// IA
+// Diagnóstico com IA
 // ---------------------------------------------------------------------
+const PASSOS_CHAVE = {
+  groq: 'Entre em console.groq.com (conta Google ou GitHub, sem cartão), abra "API Keys" e crie uma chave.',
+  openrouter: 'Entre em openrouter.ai, abra "Keys" e crie uma chave (os modelos ":free" não cobram nada).',
+  gemini: 'Entre em aistudio.google.com com sua conta Google e crie uma chave de API.',
+};
+const DICA_CHAVE = { groq: 'gsk_…', openrouter: 'sk-or-…', gemini: 'AIza…' };
+
 function abrirIA(el) {
   const c = configIA();
   const u = usoIA();
   abrirModal({
-    titulo: 'Diagnóstico com IA (Gemini)',
+    titulo: 'Diagnóstico com IA',
     corpo: html`<div class="grade-form">
-      <div class="campo-largo dica">
-        <p>1. Entre em <strong>aistudio.google.com</strong> com sua conta Google e crie uma chave de API (gratuita).<br />
-          2. Cole a chave aqui e toque em <strong>Testar chave</strong>.</p>
-        <p>A chave fica <strong>só neste navegador</strong>, nunca no banco de dados. Para a análise, o app envia apenas totais
-          por categoria, médias e metas, sem descrições de lançamentos, nomes de contas ou seu nome.
-          Na camada gratuita o Google pode usar o conteúdo enviado para melhorar os produtos dele.</p>
-      </div>
+      <fieldset class="campo-largo opcoes-pilula opcoes-coluna" aria-label="Provedor da IA">
+        ${Object.entries(PROVEDORES).map(([id, p]) => html`<label>
+          <input type="radio" name="provedor" value="${id}" ${id === c.provedor ? 'checked' : ''} />
+          <span><strong>${p.nome}</strong> <small>${p.descricao}</small></span>
+        </label>`)}
+      </fieldset>
+      <p class="campo-largo dica" data-passos></p>
       <label class="campo-largo">Chave da API
-        <input name="chave" type="password" autocomplete="off" spellcheck="false" maxlength="200" value="${c.chave}" placeholder="AIza…" />
+        <input name="chave" type="password" autocomplete="off" spellcheck="false" maxlength="200" />
       </label>
-      <label>Modelo <input name="modelo" maxlength="60" pattern="[a-z0-9.\\-]{3,60}" value="${c.modelo}" /></label>
+      <label>Modelo <input name="modelo" maxlength="80" pattern="[A-Za-z0-9._:/\\-]{3,80}" /></label>
       <span class="campo-acao"><button type="button" class="btn btn-secundario" data-testar>Testar chave</button></span>
-      <label>Máximo por minuto <input name="porMinuto" inputmode="numeric" pattern="[0-9]*" maxlength="2" value="${c.porMinuto}" /></label>
-      <label>Máximo por dia <input name="porDia" inputmode="numeric" pattern="[0-9]*" maxlength="4" value="${c.porDia}" /></label>
-      <p class="campo-largo dica">Usadas nas últimas 24 horas: ${u.hoje}. Os limites protegem a cota gratuita do Gemini.</p>
-      ${c.chave ? html`<label class="check campo-largo"><input type="checkbox" name="esquecer" /> Apagar a chave deste aparelho</label>` : ''}
+      <label>Máximo por minuto <input name="porMinuto" inputmode="numeric" pattern="[0-9]*" maxlength="2" value="${c.limitesProprios ? c.porMinuto : ''}" placeholder="padrão" /></label>
+      <label>Máximo por dia <input name="porDia" inputmode="numeric" pattern="[0-9]*" maxlength="4" value="${c.limitesProprios ? c.porDia : ''}" placeholder="padrão" /></label>
+      <p class="campo-largo dica">Usadas nas últimas 24 horas: ${u.hoje}. Os limites protegem a cota gratuita. Em branco, o app usa o limite
+        recomendado de cada provedor. Cada provedor guarda a própria chave: dá para cadastrar os três e trocar quando um ficar sem cota.</p>
+      <p class="campo-largo dica">As chaves ficam <strong>só neste aparelho</strong>, nunca no banco de dados. Para a análise, o app envia apenas
+        totais por categoria, médias e metas, sem descrições de lançamentos, nomes de contas ou seu nome. Nas camadas gratuitas o
+        provedor pode usar o conteúdo enviado para melhorar os serviços dele.</p>
+      <label class="check campo-largo"><input type="checkbox" name="esquecer" /> Apagar a chave deste provedor deste aparelho</label>
     </div>`,
     aoMontar(form) {
+      const campoChave = $('[name=chave]', form);
+      const campoModelo = $('[name=modelo]', form);
+      const passos = $('[data-passos]', form);
+      const atual = () => new FormData(form).get('provedor');
+      const mostrar = () => {
+        const p = atual();
+        const cfg = configIA();
+        campoChave.value = cfg.chaves[p] || '';
+        campoChave.placeholder = DICA_CHAVE[p];
+        campoModelo.value = cfg.modelos[p] || PROVEDORES[p].modelos[0];
+        passos.textContent = `1. ${PASSOS_CHAVE[p]} 2. Cole a chave aqui e toque em "Testar chave".`;
+      };
+      $$('[name=provedor]', form).forEach((r) => r.addEventListener('change', mostrar));
+      mostrar();
       const botao = $('[data-testar]', form);
       botao.addEventListener('click', () =>
         comCarregando(botao, async () => {
-          const chave = $('[name=chave]', form).value.trim();
+          const chave = campoChave.value.trim();
           if (chave.length < 20) throw new Error('Cole a chave completa.');
-          const { modelo } = await testarChave(chave);
-          $('[name=modelo]', form).value = modelo;
+          const { modelo } = await testarChave(chave, atual());
+          campoModelo.value = modelo;
           avisar(`Chave válida. Modelo escolhido: ${modelo}.`);
         }),
       );
     },
     async aoEnviar(f) {
       if (f.esquecer === 'on') {
-        esquecerChaveIA();
-        avisar('Chave apagada deste aparelho.');
+        esquecerChaveIA(f.provedor);
+        avisar(`Chave do ${PROVEDORES[f.provedor].nome} apagada deste aparelho.`);
       } else {
         salvarConfigIA({
+          provedor: f.provedor,
           chave: f.chave.trim(),
           modelo: f.modelo.trim(),
           porMinuto: Number(f.porMinuto) || undefined,
           porDia: Number(f.porDia) || undefined,
         });
-        avisar(f.chave.trim() ? 'Configuração da IA salva.' : 'Sem chave: o diagnóstico com IA fica desligado.');
+        avisar(f.chave.trim() ? `IA configurada: ${PROVEDORES[f.provedor].nome}.` : 'Sem chave: o diagnóstico com IA fica desligado.');
       }
       desenhar(el);
     },

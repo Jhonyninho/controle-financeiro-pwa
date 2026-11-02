@@ -1,6 +1,6 @@
 // Análise financeira, desempenho e metas: comparativos mês a mês (categoria e meio de
 // pagamento), alertas que isolam os custos fixos, simulador de metas, orçamento 50/30/20
-// e diagnóstico com IA (Gemini).
+// e diagnóstico com IA (Groq, OpenRouter ou Gemini).
 
 import * as api from '../servicos/api.js';
 import { html, renderizar } from '../lib/html.js';
@@ -14,7 +14,7 @@ import { icone } from '../assets/icons/index.js';
 import { estado, categoriaPorId, categoriasForaDosGastos } from '../estado.js';
 import { $, $$, abrirModal, avisar, avisarErro, chipCategoria, comCarregando, confirmar, estadoVazio } from '../ui/componentes.js';
 import { abrirDetalheCategoria } from '../ui/detalheCategoria.js';
-import { ErroIA, gerarDiagnostico, iaConfigurada, montarPayloadIA, usoIA, configIA } from '../servicos/ia.js';
+import { ErroIA, PROVEDORES, gerarDiagnostico, iaConfigurada, montarPayloadIA, usoIA, configIA } from '../servicos/ia.js';
 import { configVoz, criarNarrador, dividirFrases, roteiroDoDiagnostico, vozDisponivel } from '../servicos/voz.js';
 
 const MESES_JANELA = 6;
@@ -296,6 +296,13 @@ function pararNarrador() {
   narrador = null;
 }
 
+function descreverMotor(cv) {
+  if (cv.motor === 'azure') return `Azure ${cv.azure.voz.replace(/^pt-BR-|Neural$|Multilingual/g, '')}`;
+  if (cv.motor === 'eleven') return 'ElevenLabs';
+  if (cv.motor === 'gemini') return `Gemini ${cv.vozGemini}`;
+  return 'voz do navegador';
+}
+
 function playerVoz(r) {
   const cv = configVoz();
   const frases = dividirFrases(roteiroDoDiagnostico(r));
@@ -304,7 +311,7 @@ function playerVoz(r) {
       <span class="narrador-orbe" id="narrador-orbe" aria-hidden="true"><i></i><i></i><i></i></span>
       <div class="narrador-info">
         <strong>${cv.estilo === 'assistente' ? `Ouvir ${cv.assistente}` : 'Ouvir o diagnóstico'}</strong>
-        <small id="narrador-estado">${cv.motor === 'gemini' ? `voz neural ${cv.vozGemini}` : 'voz do navegador'}, cerca de ${minutos} min</small>
+        <small id="narrador-estado">${descreverMotor(cv)}, cerca de ${minutos} min</small>
       </div>
       <div class="narrador-botoes">
         <button class="btn btn-primario btn-pequeno" data-acao="voz-ouvir">Ouvir</button>
@@ -341,7 +348,7 @@ function iniciarNarrador(el, r) {
   const quem = cv.estilo === 'assistente' ? cv.assistente : null;
   rotulo.textContent = quem ? `${quem} está preparando a análise em voz…` : 'Preparando a voz…';
   const n = criarNarrador(roteiroDoDiagnostico(r), {
-    aoMotor: (m) => (rotulo.textContent = quem ? `${quem} está falando` : m === 'gemini' ? `Falando com a voz neural ${cv.vozGemini}` : 'Falando com a voz do navegador'),
+    aoMotor: (m) => (rotulo.textContent = quem ? `${quem} está falando` : `Falando com ${m === 'navegador' ? 'a voz do navegador' : `a voz neural ${descreverMotor({ ...cv, motor: m })}`}`),
     aoAviso: (msg) => avisar(msg, 'erro'),
     aoFrase: (i) => {
       legenda.textContent = n.frases[i] || '';
@@ -382,7 +389,7 @@ function resultadoIA(r) {
 function guiaIA(d) {
   if (!iaConfigurada()) {
     return estadoVazio(
-      'Cadastre sua chave gratuita do Google Gemini para receber um diagnóstico personalizado do mês.',
+      'Cadastre uma chave gratuita (Groq é a mais rápida, sem cartão) para receber um diagnóstico personalizado do mês.',
       html`<a class="btn btn-primario" href="#/configuracoes">Ir para Configurações</a>`,
     );
   }
@@ -390,7 +397,7 @@ function guiaIA(d) {
   const u = usoIA();
   const c = configIA();
   return html`<div class="ia-topo">
-      <p class="dica">Modelo ${c.modelo}. Usadas hoje: ${u.hoje} de ${c.porDia}.</p>
+      <p class="dica">${PROVEDORES[c.provedor].nome}, modelo ${c.modelo}. Usadas hoje: ${u.hoje} de ${c.porDia}.</p>
       <button class="btn btn-primario" data-acao="gerar-ia">${cache ? 'Gerar novamente' : `Gerar diagnóstico de ${nomeMes(d.mes)}`}</button>
     </div>
     <details class="dados-enviados"><summary>Ver exatamente o que será enviado</summary><pre>${JSON.stringify(d.payload, null, 2)}</pre></details>
@@ -452,7 +459,7 @@ export default {
       alertas: { ico: 'i-alvo', contador: d.alertas.length, alerta: d.alertas.length > 0, titulo: 'Alertas inteligentes', resumo: d.alertas.length ? `${d.alertas.length} alerta(s)` : 'tudo em ordem', conteudo: () => guiaAlertas(d) },
       metas: { ico: 'i-carteira', contador: metas.length, titulo: 'Metas de economia', resumo: metas.length ? `${metas.length} meta(s)` : 'crie a primeira', conteudo: () => guiaMetas(d) },
       orcamento: { ico: 'i-etiqueta', titulo: 'Orçamento e dicas', resumo: 'regra 50/30/20', conteudo: () => guiaOrcamento({ base: d.base }) },
-      ia: { ico: 'i-ia', titulo: 'Diagnóstico com IA', resumo: iaConfigurada() ? 'Gemini' : 'desligado', conteudo: () => guiaIA(d) },
+      ia: { ico: 'i-ia', titulo: 'Diagnóstico com IA', resumo: iaConfigurada() ? PROVEDORES[configIA().provedor].nome : 'desligado', conteudo: () => guiaIA(d) },
     };
 
     renderizar(
@@ -550,7 +557,7 @@ export default {
               renderizar($('#area-ia', el), html`<div class="carregando-tela" aria-busy="true">Analisando suas finanças…</div>`);
               try {
                 const cv = configVoz();
-                const r = await gerarDiagnostico(d.payload, { assistente: cv.estilo === 'assistente' ? cv.assistente : null });
+                const r = await gerarDiagnostico(d.payload, { assistente: cv.estilo === 'assistente' ? cv.assistente : null, tratamento: cv.tratamento });
                 try {
                   sessionStorage.setItem(chaveCacheIA(mes), JSON.stringify(r));
                 } catch {

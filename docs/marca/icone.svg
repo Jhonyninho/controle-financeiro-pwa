@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="fundo" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#1a2160"/>
+      <stop offset="0.55" stop-color="#0d1236"/>
+      <stop offset="1" stop-color="#05071a"/>
+    </radialGradient>
+    <linearGradient id="anel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4fd1ff"/>
+      <stop offset="1" stop-color="#8b7bff"/>
+    </linearGradient>
+    <linearGradient id="texto" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#bfe9ff"/>
+    </linearGradient>
+    <linearGradient id="linha" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#34e3b0" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#34e3b0"/>
+    </linearGradient>
+    <filter id="brilho" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="brilhoSuave" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#fundo)"/>
+
+  <!-- grade de HUD bem discreta -->
+  <g stroke="#8b7bff" stroke-opacity="0.07" stroke-width="1">
+    <path d="M0 128H512M0 256H512M0 384H512M128 0V512M256 0V512M384 0V512"/>
+  </g>
+
+  <!-- anel tracejado interno (HUD) -->
+  <circle cx="256" cy="256" r="128" fill="none" stroke="#4fd1ff" stroke-opacity="0.35" stroke-width="3" stroke-dasharray="4 10"/>
+
+  <!-- órbita segmentada, como o anel da tela inicial -->
+  <g transform="rotate(-110 256 256)" filter="url(#brilho)">
+    <circle cx="256" cy="256" r="168" fill="none" stroke="url(#anel)" stroke-width="22" stroke-linecap="round"
+            stroke-dasharray="560 30 250 30 120 66"/>
+  </g>
+  <!-- satélite na órbita -->
+  <circle cx="375" cy="137" r="13" fill="#e8f9ff" filter="url(#brilhoSuave)"/>
+
+  <!-- gráfico subindo atrás do R$ -->
+  <polyline points="160,372 212,340 252,354 304,312 352,282" fill="none" stroke="url(#linha)" stroke-width="10"
+            stroke-linecap="round" stroke-linejoin="round" filter="url(#brilhoSuave)"/>
+  <path d="M326 278 L356 280 L352 308" fill="none" stroke="#34e3b0" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- R$ -->
+  <text x="256" y="272" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="800" font-size="124"
+        letter-spacing="-4" fill="url(#texto)" filter="url(#brilhoSuave)">R$</text>
+</svg>

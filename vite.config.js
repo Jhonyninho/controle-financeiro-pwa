@@ -15,8 +15,10 @@ function csp(supabaseUrl) {
     "style-src 'self'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
-    // Gemini: diagnóstico com IA, só quando o usuário cadastra a própria chave
-    `connect-src 'self' ${origem} ${ws} https://generativelanguage.googleapis.com`,
+    // IA e voz com a chave do próprio usuário (só são chamados se ele cadastrar a chave):
+    // Gemini, Groq, OpenRouter (diagnóstico); Azure Speech e ElevenLabs (voz)
+    `connect-src 'self' ${origem} ${ws} https://generativelanguage.googleapis.com https://api.groq.com https://openrouter.ai ` +
+      'https://*.tts.speech.microsoft.com https://api.elevenlabs.io',
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

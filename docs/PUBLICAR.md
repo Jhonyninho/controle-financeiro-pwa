@@ -49,3 +49,18 @@ O ícone **Financeiro** aparece na tela de início e o app abre em tela cheia. S
 **Computador:** ícone de instalar na barra de endereço do Chrome/Edge.
 
 > Os dados financeiros nunca ficam guardados no aparelho: o app instalado só guarda a interface (para abrir rápido) e busca os dados no Supabase a cada uso. Sem internet ele abre, mas não mostra dados.
+
+## 5. IA e voz do assistente M.A.V.I.Z. (em cada aparelho)
+As chaves ficam só no aparelho em que forem cadastradas (celular e PC precisam cadastrar cada um).
+
+**Diagnóstico (Configurações → Diagnóstico com IA):**
+- **Groq (recomendado):** console.groq.com → API Keys → criar chave. Grátis, sem cartão, responde em segundos.
+- OpenRouter: openrouter.ai → Keys. Modelos `:free`, cerca de 50 análises por dia.
+- Gemini: aistudio.google.com. Cota gratuita pequena e mais lenta.
+
+**Voz (Configurações → Assistente e voz):**
+- **Voz do navegador:** grátis e instantânea, sem efeitos.
+- **Microsoft Azure (melhor e mais duradoura):** portal.azure.com → criar recurso *Speech* no plano **Free F0**, região Brazil South → copiar a Chave 1. 500 mil caracteres por mês grátis. O cadastro do Azure pede um cartão só para verificação; o plano F0 não cobra.
+- **ElevenLabs:** elevenlabs.io → Developers → API Keys. Sem cartão, cota pequena (~10 mil créditos/mês). Dá para criar uma voz original no *Voice Design* e colar o Voice ID.
+
+Toque em **Testar voz** para ouvir antes de salvar.

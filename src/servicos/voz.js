@@ -1,15 +1,49 @@
 // Narração do diagnóstico em voz alta, com legenda acompanhando a fala.
 //
-// Dois motores:
-//  - "navegador": Web Speech API (vozes do sistema; grátis, sem cota, funciona offline em muitos aparelhos);
-//  - "gemini": voz neural do Gemini (TTS) com a chave do próprio usuário. Consome cota, por isso
-//    o áudio fica em cache na sessão e só é gerado quando o usuário pede.
-// O Gemini toca pelo Web Audio (sem <audio>/blob), o que permite o efeito "HUD"
-// (equalização + leve eco metálico) e um analisador para animar a interface.
+// Motores:
+//  - "navegador": Web Speech API (vozes do sistema; grátis, sem cota, instantâneo);
+//  - "azure": Microsoft Azure Speech (vozes neurais pt-BR; 500 mil caracteres grátis por mês);
+//  - "eleven": ElevenLabs (vozes neurais multilíngues; ~10 mil créditos grátis por mês, sem cartão);
+//  - "gemini": voz neural do Gemini (TTS), cota gratuita bem pequena.
+// Os neurais devolvem PCM 24 kHz e tocam pelo Web Audio (sem <audio>/blob), o que permite o
+// timbre de IA (equalização, eco metálico) e um analisador para animar a interface.
+// As chaves são do próprio usuário e ficam só neste aparelho.
 
 import { ErroCota, ErroIA, chamar, configIA, registrarUso, verificarCota } from './ia.js';
 
 const CHAVE = 'cf.voz';
+
+export const MOTORES = [
+  { id: 'navegador', nome: 'Voz do navegador', descricao: 'grátis, sem limite e instantânea; sem os efeitos de IA' },
+  { id: 'azure', nome: 'Microsoft Azure', descricao: 'vozes neurais brasileiras; 500 mil caracteres grátis por mês' },
+  { id: 'eleven', nome: 'ElevenLabs', descricao: 'vozes neurais expressivas; cota grátis pequena, sem cartão' },
+  { id: 'gemini', nome: 'Google Gemini', descricao: 'usa a chave do Gemini; cota gratuita muito pequena' },
+];
+const NEURAIS = new Set(['azure', 'eleven', 'gemini']);
+
+export const VOZES_AZURE = [
+  { id: 'pt-BR-AntonioNeural', descricao: 'masculina, grave e segura' },
+  { id: 'pt-BR-DonatoNeural', descricao: 'masculina, madura' },
+  { id: 'pt-BR-JulioNeural', descricao: 'masculina, serena' },
+  { id: 'pt-BR-NicolauNeural', descricao: 'masculina, formal' },
+  { id: 'pt-BR-FabioNeural', descricao: 'masculina, clara' },
+  { id: 'pt-BR-ValerioNeural', descricao: 'masculina, firme' },
+  { id: 'pt-BR-FranciscaNeural', descricao: 'feminina, natural' },
+  { id: 'pt-BR-ThalitaMultilingualNeural', descricao: 'feminina, expressiva' },
+];
+
+// Vozes prontas da própria ElevenLabs (falam português com o modelo multilíngue).
+// Também dá para colar o ID de uma voz criada no "Voice Design" (voz original gerada por descrição).
+export const VOZES_ELEVEN = [
+  { id: 'onwK4e9ZLuTAKqWW03F9', descricao: 'Daniel, masculina, formal, sotaque britânico leve' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', descricao: 'George, masculina, calorosa, britânica' },
+  { id: 'nPczCjzI2devNBz1zQrb', descricao: 'Brian, masculina, grave' },
+  { id: 'pqHfZKP75CvOlQylNhV4', descricao: 'Bill, masculina, madura' },
+  { id: 'XrExE9yKIg1WjnnlVkGX', descricao: 'Matilda, feminina, calorosa' },
+];
+
+const REGIAO_PADRAO = 'brazilsouth';
+const textoCurto = (v) => (typeof v === 'string' ? v.trim().slice(0, 200) : '');
 
 export const VOZES_GEMINI = [
   { id: 'Charon', descricao: 'grave e informativa (masculina)' },
@@ -22,7 +56,18 @@ export const VOZES_GEMINI = [
   { id: 'Aoede', descricao: 'leve (feminina)' },
 ];
 
-export const NOME_PADRAO = 'Vega';
+export const NOME_PADRAO = 'M.A.V.I.Z.';
+const NOMES_ANTIGOS = new Set(['Vega']); // padrão de versões anteriores vira o novo padrão
+
+/** Como o nome é pronunciado: siglas com pontos ("M.A.V.I.Z.") viram palavra ("Maviz"). */
+export function nomeFalado(nome) {
+  const n = String(nome || '').trim();
+  if (/^(\p{L}\.){2,}\p{L}?\.?$/u.test(n)) {
+    const junto = n.replace(/\./g, '');
+    return junto.charAt(0).toUpperCase() + junto.slice(1).toLowerCase();
+  }
+  return n;
+}
 
 /** Quanto do "timbre de IA" aplicar na voz do Gemini. */
 export const NIVEIS_EFEITO = [
@@ -34,11 +79,14 @@ export const NIVEIS_EFEITO = [
 /** Instrução de interpretação enviada junto com o texto (o Gemini TTS segue o "jeito de falar"). */
 export function instrucaoDeFala(estilo, nome) {
   if (estilo === 'natural') return 'Leia em português do Brasil, com voz calma, confiante e clara:';
-  return `Você é ${nome}, um assistente pessoal de inteligência artificial de altíssima tecnologia. ` +
-    'Leia o texto abaixo em português do Brasil com voz grave, serena e segura, dicção impecável, ' +
-    'ritmo pausado e cada palavra bem articulada, num tom sofisticado, preciso e com um leve humor seco. ' +
+  return `Você é ${nomeFalado(nome)}, um assistente virtual de inteligência artificial de altíssima tecnologia. ` +
+    'Leia o texto abaixo em português do Brasil com voz grave de barítono leve, serena e segura, dicção impecável, ' +
+    'consoantes bem pronunciadas, ritmo cadenciado e pausado, num tom formal, polido e elegante, com um leve humor seco. ' +
     'Não acrescente nem omita nada do texto:';
 }
+
+/** Ajuste de prosódia (SSML) do estilo assistente nas vozes Azure: um pouco mais grave e pausado. */
+const PROSODIA_ASSISTENTE = { rate: '-7%', pitch: '-6%' };
 
 const MODELOS_TTS = ['gemini-2.5-flash-preview-tts', 'gemini-2.5-flash-tts', 'gemini-2.5-pro-preview-tts'];
 
@@ -49,8 +97,20 @@ export function configVoz() {
   } catch {
     /* sem storage */
   }
+  const azure = c.azure || {};
+  const eleven = c.eleven || {};
   return {
-    motor: c.motor === 'gemini' ? 'gemini' : 'navegador',
+    motor: MOTORES.some((m) => m.id === c.motor) ? c.motor : 'navegador',
+    azure: {
+      chave: textoCurto(azure.chave),
+      regiao: /^[a-z0-9]{3,30}$/.test(azure.regiao || '') ? azure.regiao : REGIAO_PADRAO,
+      voz: /^[a-z]{2}-[A-Z]{2}-[A-Za-z]+Neural$/.test(azure.voz || '') ? azure.voz : VOZES_AZURE[0].id,
+    },
+    eleven: {
+      chave: textoCurto(eleven.chave),
+      voz: /^[A-Za-z0-9]{10,40}$/.test(eleven.voz || '') ? eleven.voz : VOZES_ELEVEN[0].id,
+    },
+    tratamento: ['senhor', 'senhora'].includes(c.tratamento) ? c.tratamento : 'nome',
     vozGemini: VOZES_GEMINI.some((v) => v.id === c.vozGemini) ? c.vozGemini : 'Charon',
     vozNavegador: typeof c.vozNavegador === 'string' ? c.vozNavegador : '',
     velocidade: Number(c.velocidade) >= 0.7 && Number(c.velocidade) <= 1.5 ? Number(c.velocidade) : 1,
@@ -63,10 +123,18 @@ export function configVoz() {
   };
 }
 
-/** Nome do assistente: só letras, espaço e hífen, até 20 caracteres (vai para a fala e o prompt). */
+/** Nome do assistente: só letras, ponto, espaço e hífen, até 20 caracteres (vai para a fala e o prompt). */
 export function nomeAssistenteValido(n) {
-  const limpo = String(n || '').replace(/[^\p{L} -]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 20);
-  return limpo || NOME_PADRAO;
+  const limpo = String(n || '').replace(/[^\p{L}. -]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 20);
+  return limpo && !NOMES_ANTIGOS.has(limpo) ? limpo : NOME_PADRAO;
+}
+
+/** O motor neural escolhido tem a chave cadastrada? */
+export function motorPronto(cfg = configVoz()) {
+  if (cfg.motor === 'azure') return cfg.azure.chave.length >= 20;
+  if (cfg.motor === 'eleven') return cfg.eleven.chave.length >= 20;
+  if (cfg.motor === 'gemini') return configIA().chaves.gemini.length >= 20;
+  return true;
 }
 
 export function salvarConfigVoz(m) {
@@ -180,8 +248,9 @@ async function sintetizarGemini(texto, voz, sinal, { contarUso = true, persistir
     }
   }
   const cfg = configIA();
-  if (!cfg.chave) throw new ErroIA('Cadastre sua chave do Gemini em Configurações para usar a voz neural.');
-  if (contarUso) {
+  const chaveGemini = cfg.chaves.gemini;
+  if (!chaveGemini) throw new ErroIA('Cadastre a chave do Gemini em Configurações → Diagnóstico com IA para usar esta voz.');
+  if (contarUso && cfg.provedor === 'gemini') {
     verificarCota(cfg);
     registrarUso();
   }
@@ -195,7 +264,7 @@ async function sintetizarGemini(texto, voz, sinal, { contarUso = true, persistir
   let ultimo;
   for (const modelo of MODELOS_TTS) {
     try {
-      const r = await chamar(`models/${modelo}:generateContent`, { chave: cfg.chave, corpo, sinal });
+      const r = await chamar(`models/${modelo}:generateContent`, { chave: chaveGemini, corpo, sinal });
       const parte = r?.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
       if (!parte) throw new ErroIA('A voz do Gemini não devolveu áudio.');
       const pcm = pcmParaFloat(parte.inlineData.data);
@@ -208,6 +277,102 @@ async function sintetizarGemini(texto, voz, sinal, { contarUso = true, persistir
     }
   }
   throw new ErroCota(`Sem cota para a voz do Gemini agora (${ultimo?.message || '429'}).`);
+}
+
+// ---------------------------------------------------------------------
+// Azure Speech e ElevenLabs (ambos devolvem PCM 16 bits, 24 kHz, mono)
+// ---------------------------------------------------------------------
+function pcmBytesParaFloat(buffer) {
+  const v = new DataView(buffer);
+  const n = buffer.byteLength >> 1;
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) out[i] = v.getInt16(2 * i, true) / 0x8000;
+  return out;
+}
+
+const escaparXml = (t) => String(t).replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
+
+async function comCache(chaveCache, persistir, gerar) {
+  if (cacheAudio.has(chaveCache)) return cacheAudio.get(chaveCache);
+  if (persistir) {
+    const guardado = await lerDuravel(chaveCache);
+    if (guardado) {
+      cacheAudio.set(chaveCache, guardado);
+      return guardado;
+    }
+  }
+  const pcm = await gerar();
+  cacheAudio.set(chaveCache, pcm);
+  if (persistir) gravarDuravel(chaveCache, pcm);
+  return pcm;
+}
+
+async function respostaDeVoz(r, servico) {
+  if (r.ok) return pcmBytesParaFloat(await r.arrayBuffer());
+  const detalhe = await r.text().catch(() => '');
+  if (r.status === 401 || r.status === 403) {
+    if (/quota|credits|limit/i.test(detalhe)) throw new ErroCota(`Os créditos grátis do ${servico} deste mês acabaram.`);
+    throw new ErroIA(`Chave do ${servico} inválida (ou região errada). Confira em Configurações → Assistente e voz.`);
+  }
+  if (r.status === 429) throw new ErroCota(`Limite do ${servico} atingido por agora.`);
+  if (r.status === 400 || r.status === 404 || r.status === 422) throw new ErroIA(`O ${servico} recusou a voz escolhida. Escolha outra em Configurações.`);
+  throw new ErroIA(`O ${servico} não respondeu (erro ${r.status}).`);
+}
+
+async function sintetizarAzure(texto, a, sinal, { persistir = false, estilo = 'assistente', velocidade = 1 } = {}) {
+  if (!a.chave) throw new ErroIA('Cadastre a chave do Azure Speech em Configurações → Assistente e voz.');
+  const p = estilo === 'assistente' ? PROSODIA_ASSISTENTE : { rate: '0%', pitch: '0%' };
+  const taxa = `${Math.round((velocidade - 1) * 100 + parseInt(p.rate, 10))}%`;
+  const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="pt-BR">` +
+    `<voice name="${a.voz}"><prosody rate="${taxa}" pitch="${p.pitch}">${escaparXml(texto)}</prosody></voice></speak>`;
+  return comCache(`azure|${a.voz}|${taxa}|${p.pitch}|${texto}`, persistir, async () => {
+    let r;
+    try {
+      r = await fetch(`https://${a.regiao}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+        method: 'POST',
+        headers: {
+          'Ocp-Apim-Subscription-Key': a.chave,
+          'Content-Type': 'application/ssml+xml',
+          'X-Microsoft-OutputFormat': 'raw-24khz-16bit-mono-pcm',
+        },
+        body: ssml,
+        referrerPolicy: 'no-referrer',
+        credentials: 'omit',
+        signal: sinal,
+      });
+    } catch (e) {
+      if (e?.name === 'AbortError') throw e;
+      throw new ErroIA('Sem conexão com o Azure Speech.');
+    }
+    return respostaDeVoz(r, 'Azure Speech');
+  });
+}
+
+async function sintetizarEleven(texto, e, sinal, { persistir = false, velocidade = 1 } = {}) {
+  if (!e.chave) throw new ErroIA('Cadastre a chave da ElevenLabs em Configurações → Assistente e voz.');
+  const veloc = Math.min(1.2, Math.max(0.7, velocidade));
+  return comCache(`eleven|${e.voz}|${veloc}|${texto}`, persistir, async () => {
+    let r;
+    try {
+      r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(e.voz)}?output_format=pcm_24000`, {
+        method: 'POST',
+        headers: { 'xi-api-key': e.chave, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: texto,
+          model_id: 'eleven_flash_v2_5', // mais rápido e gasta metade dos créditos
+          language_code: 'pt',
+          voice_settings: { stability: 0.6, similarity_boost: 0.75, style: 0.15, speed: veloc },
+        }),
+        referrerPolicy: 'no-referrer',
+        credentials: 'omit',
+        signal: sinal,
+      });
+    } catch (err) {
+      if (err?.name === 'AbortError') throw err;
+      throw new ErroIA('Sem conexão com a ElevenLabs.');
+    }
+    return respostaDeVoz(r, 'ElevenLabs');
+  });
 }
 
 /**
@@ -260,6 +425,9 @@ function aposInteracao() {
 export function criarNarrador(texto, eventos = {}, opcoes = {}) {
   const frases = dividirFrases(texto);
   const cfg = configVoz();
+  // "M.A.V.I.Z." aparece escrito assim, mas é falado "Maviz"
+  const falado = nomeFalado(cfg.assistente);
+  const falavel = (t) => (falado !== cfg.assistente ? String(t).split(cfg.assistente).join(falado) : t);
   let parado = false;
   let pausado = false;
   let ctx = null;
@@ -286,10 +454,12 @@ export function criarNarrador(texto, eventos = {}, opcoes = {}) {
     const proxima = () => {
       if (parado) return;
       if (i >= frases.length) return fim();
-      const u = new SpeechSynthesisUtterance(frases[i]);
+      const u = new SpeechSynthesisUtterance(falavel(frases[i]));
       u.lang = voz?.lang || 'pt-BR';
       if (voz) u.voice = voz;
-      u.rate = cfg.velocidade;
+      // estilo assistente: um pouco mais grave e pausado
+      u.rate = cfg.velocidade * (cfg.estilo === 'assistente' ? 0.95 : 1);
+      u.pitch = cfg.estilo === 'assistente' ? 0.9 : 1;
       u.onstart = () => eventos.aoFrase?.(i);
       u.onend = () => { i += 1; proxima(); };
       u.onerror = (ev) => {
@@ -523,29 +693,32 @@ export function criarNarrador(texto, eventos = {}, opcoes = {}) {
     tique();
   }
 
-  async function viaGemini() {
-    eventos.aoMotor?.('gemini');
-    const blocos = blocosDeFala(frases).map((idx) => ({ idx, texto: idx.map((i) => frases[i]).join(' ') }));
-    await reproduzirFila(
-      blocos,
-      async (n) => ({
-        pcm: await sintetizarGemini(blocos[n].texto, cfg.vozGemini, abortar.signal, {
-          contarUso: n === 0, // uma narração conta como um uso
-          persistir: opcoes.persistir,
-          instrucao: instrucaoDeFala(cfg.estilo, cfg.assistente),
-        }),
-        taxa: 24000,
-      }),
-      { ritmo: cfg.velocidade * (cfg.efeito === 'assistente' ? 0.95 : 1), adiante: 2 },
-    );
+  async function viaNeural() {
+    eventos.aoMotor?.(cfg.motor);
+    const blocos = blocosDeFala(frases).map((idx) => ({ idx, texto: falavel(idx.map((i) => frases[i]).join(' ')) }));
+    const sinal = abortar.signal;
+    const persistir = opcoes.persistir;
+    const sintetizar = (n) => {
+      const t = blocos[n].texto;
+      if (cfg.motor === 'azure') return sintetizarAzure(t, cfg.azure, sinal, { persistir, estilo: cfg.estilo, velocidade: cfg.velocidade });
+      if (cfg.motor === 'eleven') return sintetizarEleven(t, cfg.eleven, sinal, { persistir, velocidade: cfg.velocidade });
+      return sintetizarGemini(t, cfg.vozGemini, sinal, {
+        contarUso: n === 0, // uma narração conta como um uso
+        persistir,
+        instrucao: instrucaoDeFala(cfg.estilo, cfg.assistente),
+      });
+    };
+    // Azure e ElevenLabs já aplicam a velocidade na síntese; o Gemini é acelerado na reprodução
+    const ritmo = (cfg.motor === 'gemini' ? cfg.velocidade : 1) * (cfg.efeito === 'assistente' ? 0.97 : 1);
+    await reproduzirFila(blocos, async (n) => ({ pcm: await sintetizar(n), taxa: 24000 }), { ritmo, adiante: 2 });
   }
 
   const iniciar = async () => {
-    if (cfg.motor === 'gemini' && 'AudioContext' in window) {
+    if (NEURAIS.has(cfg.motor) && 'AudioContext' in window) {
       // criado já no toque do usuário, para o navegador liberar o som
       ctx = new AudioContext();
       try {
-        await viaGemini();
+        await viaNeural();
         return;
       } catch (e) {
         ctx?.close().catch(() => {});
@@ -607,12 +780,14 @@ const ABERTURAS_ASSISTENTE = ['sistemas financeiros online.', 'tudo pronto por a
  * Texto da saudação, fixo por período do dia + nome (o áudio neural fica guardado).
  * Com `assistente` (nome), vem na voz da personagem: "Boa noite, Rafael. Aqui é Vega, ...".
  */
-export function textoSaudacao(nome, { hora = new Date().getHours(), dia = new Date().getDate(), assistente = null } = {}) {
+export function textoSaudacao(nome, { hora = new Date().getHours(), dia = new Date().getDate(), assistente = null, tratamento = 'nome' } = {}) {
   const primeiro = String(nome || '').trim().split(/\s+/)[0];
   const frase = FRASES_SAUDACAO[dia % FRASES_SAUDACAO.length];
   if (assistente) {
     const abertura = ABERTURAS_ASSISTENTE[dia % ABERTURAS_ASSISTENTE.length];
-    return `${periodoDoDia(hora)}${primeiro ? `, ${primeiro}` : ''}. Aqui é ${assistente}, ${abertura} ${frase}`;
+    const pronome = tratamento === 'senhor' || tratamento === 'senhora' ? tratamento : '';
+    const quem = [pronome, primeiro].filter(Boolean).join(' ');
+    return `${periodoDoDia(hora)}${quem ? `, ${quem}` : ''}. Aqui é ${assistente}, ${abertura} ${frase}`;
   }
   return `${periodoDoDia(hora)}${primeiro ? `, ${primeiro}` : ''}! ${frase}`;
 }
@@ -628,7 +803,7 @@ export function falarSaudacao(nome) {
     /* sem storage: fala mesmo assim */
   }
   const assistente = cfg.estilo === 'assistente' ? cfg.assistente : null;
-  const n = criarNarrador(textoSaudacao(nome, { assistente }), {}, { persistir: true, vinheta: cfg.motor === 'gemini' });
+  const n = criarNarrador(textoSaudacao(nome, { assistente, tratamento: cfg.tratamento }), {}, { persistir: true, vinheta: NEURAIS.has(cfg.motor) });
   n.iniciar().catch(() => {});
   return n;
 }

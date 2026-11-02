@@ -48,8 +48,8 @@ Para remover o acesso: **Users → (usuário) → Delete user**. Todos os dados 
 - **Verificação em duas etapas (opcional, recomendada):** em **Configurações → Verificação em duas etapas** cada usuário cadastra um app autenticador (Google Authenticator, Microsoft Authenticator, Authy). A partir daí o login pede senha + código, e o **banco** (migration 0009) recusa qualquer leitura/gravação de uma sessão que não passou pelo código.
 - **Sair de todos os aparelhos:** em Configurações, encerra a sessão em todo lugar (celular perdido, computador emprestado).
 - **Sessão:** sai sozinho após 30 minutos sem uso.
-- **Navegador:** CSP estrita (só scripts do próprio site, conexões só com o Supabase e o Gemini), nada de HTML sem escape, e o app não abre dentro de iframe de outro site.
-- **Chave da IA (Gemini):** fica só no aparelho de cada pessoa, nunca no banco.
+- **Navegador:** CSP estrita (só scripts do próprio site, conexões só com o Supabase e os serviços de IA/voz escolhidos pelo usuário), nada de HTML sem escape, e o app não abre dentro de iframe de outro site.
+- **Chaves de IA e voz (Groq, OpenRouter, Gemini, Azure, ElevenLabs):** ficam só no aparelho de cada pessoa, nunca no banco.
 
 **Usuário perdeu o celular com o autenticador:** no painel, **Authentication → Users → (usuário) → Multi-Factor Authentication → remover o fator**. Ou no SQL Editor:
 ```sql
