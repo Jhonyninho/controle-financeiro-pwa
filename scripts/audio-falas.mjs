@@ -58,15 +58,54 @@ export function dividirPorSilencio(pcm, textos) {
       if (ini >= 0) trechos.push([ini, ultimo]);
       const validos = trechos.filter(([a, b]) => b - a >= 25); // ≥ 0,25 s
       if (validos.length !== n) continue;
-      const coerente = validos.every(([a, b], i) => {
-        const sPorLetra = (b - a) / 100 / textos[i].length;
-        return sPorLetra > 0.03 && sPorLetra < 0.16;
+      if (!coerente(validos)) continue;
+      return cortar(validos);
+    }
+  }
+  // Plano B (poupa cota): quando o modelo faz pausas internas parecidas com as pausas entre
+  // frases, nenhum limiar acerta a contagem. Aí corta nas n−1 maiores pausas (cada uma ≥ 0,35 s)
+  // e só aceita se a duração de cada fala combinar com o texto.
+  if (n > 1) {
+    for (const limiar of [0.012, 0.006, 0.02]) {
+      const fala = [];
+      let ini = -1;
+      let ultimo = -1;
+      for (let q = 0; q < rms.length; q++) {
+        if (rms[q] < limiar) continue;
+        if (ini < 0) ini = q;
+        else if (q - ultimo > 15) {
+          fala.push([ini, ultimo]);
+          ini = q;
+        }
+        ultimo = q;
+      }
+      if (ini >= 0) fala.push([ini, ultimo]);
+      if (fala.length <= n) continue;
+      const pausas = fala.slice(1).map(([a], i) => ({ i, tam: a - fala[i][1] }));
+      const maiores = [...pausas].sort((x, y) => y.tam - x.tam).slice(0, n - 1);
+      if (maiores[maiores.length - 1].tam < 35) continue;
+      const corte = new Set(maiores.map((p) => p.i));
+      const grupos = [];
+      let inicio = fala[0][0];
+      fala.forEach(([, b], i) => {
+        if (!corte.has(i) && i < fala.length - 1) return;
+        grupos.push([inicio, b]);
+        if (i + 1 < fala.length) inicio = fala[i + 1][0];
       });
-      if (!coerente) continue;
-      return validos.map(([a, b]) => recortar(pcm, Math.max(0, (a - 6) * passo), Math.min(pcm.length, (b + 15) * passo)));
+      if (coerente(grupos)) return cortar(grupos);
     }
   }
   return null;
+
+  function coerente(trechos) {
+    return trechos.every(([a, b], i) => {
+      const sPorLetra = (b - a) / 100 / textos[i].length;
+      return sPorLetra > 0.03 && sPorLetra < 0.16;
+    });
+  }
+  function cortar(trechos) {
+    return trechos.map(([a, b]) => recortar(pcm, Math.max(0, (a - 6) * passo), Math.min(pcm.length, (b + 15) * passo)));
+  }
 }
 
 /** Float32 → MP3 mono 48 kbps (Buffer). */

@@ -90,6 +90,16 @@ describe('gerador de falas (áudio)', () => {
     expect(Math.max(...cortes[1].map(Math.abs))).toBeCloseTo(0.89, 1); // volume normalizado
   });
 
+  it('pausa interna parecida com a pausa entre frases: corta nas maiores pausas', () => {
+    const textos = ['Bom dia, senhor. Tudo certo.', 'Vamos verificar como estão as finanças hoje, senhor?', 'Disciplina hoje.'];
+    const pcm = juntar(tom(2.0), silencio(1.0), tom(1.5), silencio(0.95), tom(1.5), silencio(1.0), tom(1.1));
+    const cortes = dividirPorSilencio(pcm, textos);
+    expect(cortes).toHaveLength(3);
+    const dur = cortes.map((c) => c.length / TAXA);
+    expect(dur[1]).toBeGreaterThan(3.9); // a frase do meio fica inteira, com a pausa interna
+    expect(dur[2]).toBeLessThan(1.5);
+  });
+
   it('desiste (null) quando o número de trechos não bate', () => {
     const pcm = juntar(tom(2), silencio(1.5), tom(2));
     expect(dividirPorSilencio(pcm, ['Uma frase qualquer aqui.', 'Outra frase.', 'Mais uma.'])).toBeNull();
