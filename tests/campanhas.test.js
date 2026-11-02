@@ -1,0 +1,119 @@
+import { describe, expect, it } from 'vitest';
+import { avisosDoDia, campanhaDoDia, datasDoAno, pascoa } from '../src/lib/campanhas.js';
+import { corDoHud } from '../src/lib/aparencia.js';
+import { dividirFrases, roteiroDoDiagnostico } from '../src/servicos/voz.js';
+
+describe('campanhas e datas', () => {
+  it.each([
+    [2024, '2024-03-31'],
+    [2025, '2025-04-20'],
+    [2026, '2026-04-05'],
+    [2027, '2027-03-28'],
+  ])('Páscoa de %i', (ano, data) => expect(pascoa(ano)).toBe(data));
+
+  it('campanha do mês', () => {
+    expect(campanhaDoDia('2026-10-15').nome).toBe('Outubro Rosa');
+    expect(campanhaDoDia('2026-09-01').texto).toMatch(/188/);
+    expect(campanhaDoDia('2026-11-01').chave).toBe('novembro-azul-2026');
+  });
+
+  it('datas móveis: Carnaval, Corpus Christi e Black Friday', () => {
+    const d = Object.fromEntries(datasDoAno(2026).map((x) => [x.id, x.data]));
+    expect(d.carnaval).toBe('2026-02-17');
+    expect(d['corpus-christi']).toBe('2026-06-04');
+    expect(d['black-friday']).toBe('2026-11-27');
+    expect(d.maes).toBe('2026-05-10');
+    expect(d.pais).toBe('2026-08-09');
+  });
+
+  it('avisos do dia respeitam a janela antes/depois', () => {
+    const titulos = (dia) => avisosDoDia(dia).map((a) => a.titulo);
+    expect(titulos('2026-11-01')).toEqual(['Novembro Azul', 'Finados amanhã']);
+    expect(titulos('2026-11-25')).toContain('Black Friday em 2 dias');
+    expect(titulos('2026-12-31')).toContain('Ano Novo amanhã'); // olha o ano seguinte
+    expect(titulos('2026-07-20')).toEqual(['Julho Amarelo']);
+  });
+
+  it('cor automática do HUD segue a campanha', () => {
+    expect(corDoHud('auto', '2026-10-10').id).toBe('rosa');
+    expect(corDoHud('auto', '2026-11-10').id).toBe('azul');
+    expect(corDoHud('verde', '2026-10-10').id).toBe('verde');
+  });
+});
+
+describe('roteiro da voz', () => {
+  it('divide em frases sem quebrar números', () => {
+    expect(dividirFrases('Você gastou R$ 1.234,56 no mês. Isso é 12,5% a mais! Atenção: mercado subiu.')).toEqual([
+      'Você gastou R$ 1.234,56 no mês.',
+      'Isso é 12,5% a mais!',
+      'Atenção: mercado subiu.',
+    ]);
+  });
+
+  it('monta o roteiro na ordem da tela e fala valores em reais', () => {
+    const t = roteiroDoDiagnostico({
+      resumo: 'Mês equilibrado.',
+      pontos_fortes: ['Sobrou R$ 500,00.'],
+      pontos_de_atencao: [],
+      estrategias: [{ titulo: 'Delivery', acao: 'Defina um teto semanal.', economia: 120 }],
+      metas: [],
+    });
+    expect(t).toBe('Mês equilibrado. Pontos fortes. Sobrou 500,00 reais. Delivery. Defina um teto semanal. Economia estimada de 120 reais por mês.');
+  });
+});
+
+import { blocosDeFala, periodoDoDia, textoSaudacao } from '../src/servicos/voz.js';
+
+describe('voz: blocos e saudação', () => {
+  it('primeiro bloco curto, no máximo 4 blocos, todas as frases na ordem', () => {
+    const frases = Array.from({ length: 30 }, (_, i) => `Frase número ${i + 1} com algum conteúdo para ocupar espaço.`);
+    const b = blocosDeFala(frases);
+    expect(b.length).toBeLessThanOrEqual(4);
+    expect(b[0].map((i) => frases[i]).join(' ').length).toBeLessThanOrEqual(170);
+    expect(b.flat()).toEqual(frases.map((_, i) => i));
+  });
+
+  it('texto curto vira um bloco só', () => {
+    expect(blocosDeFala(['Olá.'])).toEqual([[0]]);
+    expect(blocosDeFala([])).toEqual([]);
+  });
+
+  it('saudação por período do dia, com o primeiro nome', () => {
+    expect(periodoDoDia(8)).toBe('Bom dia');
+    expect(periodoDoDia(14)).toBe('Boa tarde');
+    expect(periodoDoDia(21)).toBe('Boa noite');
+    expect(periodoDoDia(2)).toBe('Boa noite');
+    expect(textoSaudacao('Rafael Augusto', { hora: 9, dia: 4 })).toBe('Bom dia, Rafael! Bora cuidar da vida financeira?');
+    expect(textoSaudacao('', { hora: 19, dia: 1 })).toBe('Boa noite! Vamos ver como estão as suas finanças hoje?');
+  });
+});
+
+import { NOME_PADRAO, instrucaoDeFala, nomeAssistenteValido } from '../src/servicos/voz.js';
+import { PROMPT_SISTEMA, promptSistema } from '../src/servicos/ia.js';
+
+describe('assistente próprio', () => {
+  it('nome do assistente só com letras (vai para a fala e para o prompt)', () => {
+    expect(nomeAssistenteValido('  Vega  ')).toBe('Vega');
+    expect(nomeAssistenteValido('Órion-7 <script>')).toBe('Órion- script');
+    expect(nomeAssistenteValido('')).toBe(NOME_PADRAO);
+    expect(nomeAssistenteValido('x'.repeat(40))).toHaveLength(20);
+  });
+
+  it('saudação na voz da personagem', () => {
+    expect(textoSaudacao('Rafael Augusto', { hora: 20, dia: 4, assistente: 'Vega' })).toBe(
+      'Boa noite, Rafael. Aqui é Vega, sistemas financeiros online. Bora cuidar da vida financeira?',
+    );
+  });
+
+  it('instrução de fala descreve um estilo, sem imitar pessoas reais', () => {
+    const t = instrucaoDeFala('assistente', 'Vega');
+    expect(t).toMatch(/Vega/);
+    expect(t).toMatch(/dicção/);
+    expect(t).not.toMatch(/jarvis|bettany|tony|stark|marvel/i);
+  });
+
+  it('personalidade entra no prompt só com o nome do assistente', () => {
+    expect(promptSistema(null)).toBe(PROMPT_SISTEMA);
+    expect(promptSistema('Vega')).toMatch(/você é Vega/);
+  });
+});

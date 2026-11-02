@@ -1,0 +1,28 @@
+# Dependências e build
+node_modules/
+dist/
+
+# Variáveis de ambiente (nunca versionar)
+.env
+.env.*
+!.env.example
+
+# DADOS FINANCEIROS PESSOAIS — nunca enviar ao GitHub
+extratos/
+*.xlsx
+*.xls
+*.csv
+*.pdf
+!tests/fixtures/**
+
+# Supabase CLI
+supabase/.temp/
+supabase/.branches/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Material de apoio local (prints com dados reais, áudios de terceiros)
+Dados para ajustes/
+*.mp3

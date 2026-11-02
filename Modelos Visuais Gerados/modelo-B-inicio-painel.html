@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Modelo B · Início analítico</title>
+<link rel="stylesheet" href="base.css" />
+<style>
+  .rosca-area { display: grid; grid-template-columns: 220px 1fr; gap: 18px; align-items: center; }
+  .rosca { position: relative; width: 220px; height: 220px; }
+  .rosca svg { width: 220px; height: 220px; transform: rotate(-90deg); }
+  .rosca circle { fill: none; stroke-width: 22; transition: stroke-width .15s; cursor: pointer; }
+  .rosca circle:hover { stroke-width: 28; }
+  .rosca .centro { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+  .rosca .centro b { font-size: 22px; } .rosca .centro span { color: var(--texto-3); font-size: 12px; }
+  .barras { display: flex; align-items: flex-end; gap: 14px; height: 190px; padding: 0 4px; border-bottom: 1px solid var(--borda); }
+  .mes { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+  .par { display: flex; gap: 3px; align-items: flex-end; height: 100%; }
+  .par i { width: 14px; border-radius: 4px 4px 0 0; display: block; }
+  .par .e { background: var(--entrada); } .par .s { background: var(--saida); }
+  .mes small { color: var(--texto-3); font-size: 11.5px; }
+  .mes.atual small { color: var(--texto); font-weight: 700; }
+  .legenda { display: flex; gap: 14px; font-size: 12px; color: var(--texto-2); margin-top: 10px; }
+  .legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .alternar { display: inline-flex; border: 1px solid var(--borda-forte); border-radius: 9px; padding: 3px; margin-left: auto; }
+  .alternar b { padding: 6px 12px; border-radius: 7px; font-size: 12.5px; color: var(--texto-2); cursor: pointer; }
+  .alternar b.on { background: var(--destaque); color: #1a0d03; }
+  .topo-painel { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .conta-linha { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--borda); }
+  .conta-linha:last-child { border: 0; }
+  .conta-linha .n { flex: 1; font-weight: 600; } .conta-linha .n small { display: block; color: var(--texto-3); font-weight: 400; }
+</style>
+</head>
+<body data-ativo="inicio">
+<div class="app">
+  <nav class="trilho"></nav>
+  <main class="principal">
+
+    <div class="cabecalho">
+      <div class="saudacao">
+        <h1><span data-saudacao>Boa tarde</span>, Rafael 👋</h1>
+        <p>Domingo, 1 de novembro</p>
+        <div class="relogio"><strong data-relogio>17:20:26</strong></div>
+      </div>
+      <label class="busca" data-i="busca">Buscar lançamento ou categoria…<kbd>Ctrl K</kbd></label>
+      <div class="acoes-topo">
+        <span class="pilula" style="padding:9px 14px">‹ &nbsp;novembro de 2026&nbsp; ›</span>
+        <a class="btn btn-primario" data-i="mais">Novo lançamento</a>
+      </div>
+    </div>
+
+    <section class="kpis">
+      <div class="kpi"><span class="tile azul" data-i="banco"></span><div><strong>R$ 8.420,15</strong><span>patrimônio (todas as contas)</span></div></div>
+      <div class="kpi"><span class="tile verde" data-i="subir"></span><div><strong>R$ 6.200,00</strong><span>entradas do mês</span></div></div>
+      <div class="kpi"><span class="tile vermelho" data-i="descer"></span><div><strong>R$ 3.912,40</strong><span>saídas do mês</span></div><b class="canto neg">+12%</b></div>
+      <div class="kpi"><span class="tile violeta" data-i="alvo"></span><div><strong class="pos">R$ 2.287,60</strong><span>sobra do mês · 37% da renda</span></div></div>
+    </section>
+
+    <div class="grade-2">
+      <section class="painel">
+        <div class="topo-painel"><div><h3>Para onde foi o dinheiro</h3><p class="sub" style="margin:0">Toque numa categoria para ver os gastos</p></div>
+          <div class="alternar"><b class="on">Categorias</b><b>Meio de pagamento</b></div></div>
+        <div class="rosca-area">
+          <div class="rosca"><svg viewBox="0 0 200 200" id="rosca"></svg><div class="centro"><b>R$ 3.912</b><span>saídas</span></div></div>
+          <div id="cats"></div>
+        </div>
+      </section>
+
+      <section class="painel">
+        <div class="topo-painel"><div><h3>Entradas x saídas</h3><p class="sub" style="margin:0">Últimos 6 meses</p></div>
+          <div class="alternar"><b class="on">Fluxo</b><b>Patrimônio</b></div></div>
+        <div class="barras" id="barras"></div>
+        <div class="legenda"><span><i style="background:var(--entrada)"></i>Entradas</span><span><i style="background:var(--saida)"></i>Saídas</span></div>
+      </section>
+    </div>
+
+    <div class="grade-3">
+      <section class="painel">
+        <h3>Próximos vencimentos</h3><p class="sub">Lançamentos futuros dos próximos 15 dias</p>
+        <div class="venc"><div class="data"><b>30</b>out</div><div class="desc">Condomínio<small>Banco do Brasil · <span class="alerta">vencido</span></small></div><span class="v neg">R$ 480,00</span></div>
+        <div class="venc"><div class="data"><b>05</b>nov</div><div class="desc">Aluguel<small>Banco do Brasil · fixa</small></div><span class="v neg">R$ 1.800,00</span></div>
+        <div class="venc"><div class="data"><b>10</b>nov</div><div class="desc">Fatura Nubank<small>cartão de crédito</small></div><span class="v neg">R$ 1.130,22</span></div>
+        <div class="venc"><div class="data"><b>12</b>nov</div><div class="desc">Geladeira (5/10)<small>Inter · parcela</small></div><span class="v neg">R$ 289,90</span></div>
+      </section>
+      <section class="painel">
+        <h3>Contas</h3><p class="sub">Saldo real hoje</p>
+        <div class="conta-linha"><span class="tile azul" data-i="banco"></span><div class="n">Banco do Brasil<small>corrente</small></div><b>R$ 3.210,40</b></div>
+        <div class="conta-linha"><span class="tile violeta" data-i="cartao"></span><div class="n">Nubank<small>digital · fatura R$ 1.130,22</small></div><b>R$ 1.904,75</b></div>
+        <div class="conta-linha"><span class="tile laranja" data-i="cartao"></span><div class="n">Inter<small>digital</small></div><b>R$ 805,00</b></div>
+        <div class="conta-linha"><span class="tile verde" data-i="carteira"></span><div class="n">Tesouro Selic<small>investimento</small></div><b>R$ 2.500,00</b></div>
+      </section>
+      <section class="painel">
+        <h3>Alertas do mês</h3><p class="sub">Gastos variáveis acima da média dos 3 meses anteriores</p>
+        <div class="venc"><span class="tile vermelho" data-i="garfo"></span><div class="desc">Restaurantes<small>R$ 612 · média R$ 380 · +61%</small></div><span class="v alerta">alto</span></div>
+        <div class="venc"><span class="tile ambar" data-i="carro"></span><div class="desc">Transporte<small>R$ 548 · média R$ 430 · +27%</small></div><span class="v" style="color:var(--ambar)">médio</span></div>
+        <div class="venc"><span class="tile verde" data-i="check"></span><div class="desc">Custos fixos estáveis<small>R$ 2.410 · igual à média</small></div><span class="v pos">ok</span></div>
+      </section>
+    </div>
+
+  </main>
+</div>
+<div class="nota-modelo">Modelo B · protótipo com dados fictícios. <a href="index.html">Ver todos os modelos</a></div>
+<script src="casca.js"></script>
+<script>
+  const cats = [
+    ['Mercado', 939, '#1f97c4', 'mercado'], ['Moradia', 821, '#8b7bff', 'casa'], ['Transporte', 548, '#169e75', 'carro'],
+    ['Restaurantes', 612, '#b98620', 'garfo'], ['Lazer', 352, '#e0559f', 'play'], ['Saúde', 313, '#4f7ef5', 'coracao'], ['Outros', 327, '#7b8599', 'etiqueta'],
+  ].sort((a, b) => b[1] - a[1]);
+  const total = cats.reduce((s, c) => s + c[1], 0);
+  const C = 2 * Math.PI * 80; let acc = 0;
+  document.getElementById('rosca').innerHTML = cats.map(([n, v, cor]) => {
+    const len = (v / total) * C; const s = `<circle cx="100" cy="100" r="80" stroke="${cor}" stroke-dasharray="${Math.max(0, len - 3)} ${C}" stroke-dashoffset="${-acc}"><title>${n}: R$ ${v}</title></circle>`;
+    acc += len; return s;
+  }).join('');
+  const max = cats[0][1];
+  document.getElementById('cats').innerHTML = cats.map(([n, v, cor, ic]) => `<div class="cat-linha"><span class="bolinha" style="background:${cor}22;color:${cor}">${icone(ic)}</span>
+    <div><div class="nome">${n}</div><div class="barra"><i style="width:${(v / max) * 100}%;background:${cor}"></i></div></div>
+    <div class="valor">R$ ${v.toLocaleString('pt-BR')}<small>${Math.round((v / total) * 100)}%</small></div></div>`).join('');
+  const meses = [['jun', 5900, 4300], ['jul', 6100, 5200], ['ago', 6000, 4100], ['set', 6400, 4800], ['out', 6200, 3500], ['nov', 6200, 3912]];
+  document.getElementById('barras').innerHTML = meses.map(([m, e, s], i) => `<div class="mes ${i === 5 ? 'atual' : ''}"><div class="par">
+    <i class="e" style="height:${(e / 7000) * 100}%" title="Entradas R$ ${e}"></i><i class="s" style="height:${(s / 7000) * 100}%" title="Saídas R$ ${s}"></i></div><small>${m}</small></div>`).join('');
+</script>
+</body>
+</html>

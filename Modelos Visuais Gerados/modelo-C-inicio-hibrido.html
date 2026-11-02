@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Modelo C · Início híbrido</title>
+<link rel="stylesheet" href="base.css" />
+<style>
+  .destaque-saldo { display: grid; grid-template-columns: 1.1fr 2fr; gap: 16px; margin-top: 24px; }
+  .saldo-grande { background: linear-gradient(150deg, #1a2342 0%, #0f1729 70%); border: 1px solid var(--borda-forte); border-radius: 16px; padding: 22px; position: relative; overflow: hidden; }
+  .saldo-grande::after { content: ''; position: absolute; right: -60px; top: -60px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(249,115,22,.28), transparent 70%); }
+  .saldo-grande span { color: var(--texto-2); font-size: 13px; }
+  .saldo-grande strong { display: block; font-size: 36px; font-weight: 800; margin: 4px 0 14px; font-variant-numeric: tabular-nums; }
+  .mini { display: flex; gap: 22px; font-size: 13px; } .mini b { display: block; font-size: 16px; }
+  .progresso { margin-top: 16px; } .progresso .barra { height: 8px; } .progresso small { color: var(--texto-3); }
+  .contas { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .cartao-conta { border-radius: 14px; padding: 16px; min-height: 128px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(255,255,255,.08); cursor: pointer; transition: transform .15s; }
+  .cartao-conta:hover { transform: translateY(-2px); }
+  .cartao-conta header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+  .cartao-conta small { opacity: .8; font-size: 12px; } .cartao-conta strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+  .bb { background: linear-gradient(140deg, #1e3a8a, #172554); } .nu { background: linear-gradient(140deg, #6d28d9, #3b0764); }
+  .inter { background: linear-gradient(140deg, #c2410c, #7c2d12); } .inv { background: linear-gradient(140deg, #047857, #064e3b); }
+  .atalhos { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .atalho { background: var(--painel); border: 1px solid var(--borda); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .atalho:hover { border-color: var(--destaque); }
+  .atalho b { font-size: 14px; } .atalho small { color: var(--texto-3); font-size: 12px; }
+  .atalho .linha { display: flex; justify-content: space-between; align-items: center; }
+  .contador { font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(240,82,82,.16); color: #fca5a5; }
+</style>
+</head>
+<body data-ativo="inicio">
+<div class="app">
+  <nav class="trilho"></nav>
+  <main class="principal">
+
+    <div class="cabecalho">
+      <div class="saudacao">
+        <h1><span data-saudacao>Boa tarde</span>, Rafael 👋</h1>
+        <p>Domingo, 1 de novembro · <strong data-relogio style="color:var(--texto)">17:20</strong></p>
+      </div>
+      <label class="busca" data-i="busca">Buscar…<kbd>Ctrl K</kbd></label>
+      <div class="acoes-topo">
+        <a class="btn" data-i="importar">Importar extrato</a>
+        <a class="btn btn-primario" data-i="mais">Novo lançamento</a>
+      </div>
+    </div>
+
+    <div class="destaque-saldo">
+      <section class="saldo-grande">
+        <span>Patrimônio em todas as contas</span>
+        <strong>R$ 8.420,15</strong>
+        <div class="mini">
+          <div><span>Entradas nov</span><b class="pos">R$ 6.200,00</b></div>
+          <div><span>Saídas nov</span><b class="neg">R$ 3.912,40</b></div>
+          <div><span>Faturas a vencer</span><b>R$ 1.130,22</b></div>
+        </div>
+        <div class="progresso"><div class="barra"><i style="width:63%;background:linear-gradient(90deg,var(--destaque),#fbbf24)"></i></div>
+          <small>Você já gastou 63% do que entrou neste mês</small></div>
+      </section>
+      <section>
+        <div class="secao" style="margin-top:0">MINHAS CONTAS</div>
+        <div class="contas">
+          <div class="cartao-conta bb"><header>Banco do Brasil <span data-i="banco"></span></header><div><small>corrente</small><br><strong>R$ 3.210,40</strong></div></div>
+          <div class="cartao-conta nu"><header>Nubank <span data-i="cartao"></span></header><div><small>fatura R$ 1.130,22 · vence 10/11</small><br><strong>R$ 1.904,75</strong></div></div>
+          <div class="cartao-conta inter"><header>Inter <span data-i="cartao"></span></header><div><small>digital</small><br><strong>R$ 805,00</strong></div></div>
+          <div class="cartao-conta inv"><header>Tesouro Selic <span data-i="carteira"></span></header><div><small>investimento</small><br><strong>R$ 2.500,00</strong></div></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="secao">ATALHOS</div>
+    <div class="atalhos">
+      <a class="atalho" href="tela-lancamentos.html"><div class="linha"><span class="tile azul" data-i="lista"></span></div><b>Lançamentos</b><small>142 no mês</small></a>
+      <a class="atalho" href="#"><div class="linha"><span class="tile ambar" data-i="calendario"></span><span class="contador">1 vencido</span></div><b>Futuros</b><small>4 em 7 dias</small></a>
+      <a class="atalho" href="#"><div class="linha"><span class="tile ciano" data-i="importar"></span></div><b>Importar extrato</b><small>última há 6 dias</small></a>
+      <a class="atalho" href="#"><div class="linha"><span class="tile violeta" data-i="grafico"></span></div><b>Relatórios</b><small>por categoria e mês</small></a>
+      <a class="atalho" href="#"><div class="linha"><span class="tile verde" data-i="alvo"></span><span class="contador">2 alertas</span></div><b>Análise e metas</b><small>1 meta ativa</small></a>
+      <a class="atalho" href="#"><div class="linha"><span class="tile rosa" data-i="ia"></span></div><b>Diagnóstico IA</b><small>gerar para novembro</small></a>
+    </div>
+
+    <div class="grade-2">
+      <section class="painel">
+        <h3>Maiores gastos do mês</h3><p class="sub">Toque para ver os lançamentos da categoria</p>
+        <div class="cat-linha"><span class="bolinha" style="background:#1f97c422;color:#1f97c4" data-i="mercado"></span><div><div class="nome">Mercado</div><div class="barra"><i style="width:100%;background:#1f97c4"></i></div></div><div class="valor">R$ 939<small>24%</small></div></div>
+        <div class="cat-linha"><span class="bolinha" style="background:#8b7bff22;color:#8b7bff" data-i="casa"></span><div><div class="nome">Moradia</div><div class="barra"><i style="width:87%;background:#8b7bff"></i></div></div><div class="valor">R$ 821<small>21%</small></div></div>
+        <div class="cat-linha"><span class="bolinha" style="background:#b9862022;color:#b98620" data-i="garfo"></span><div><div class="nome">Restaurantes</div><div class="barra"><i style="width:65%;background:#b98620"></i></div></div><div class="valor">R$ 612<small>16%</small></div></div>
+        <div class="cat-linha"><span class="bolinha" style="background:#169e7522;color:#169e75" data-i="carro"></span><div><div class="nome">Transporte</div><div class="barra"><i style="width:58%;background:#169e75"></i></div></div><div class="valor">R$ 548<small>14%</small></div></div>
+      </section>
+      <section class="painel">
+        <h3>Próximos vencimentos</h3><p class="sub">Próximos 15 dias</p>
+        <div class="venc"><div class="data"><b>30</b>out</div><div class="desc">Condomínio<small class="alerta">vencido</small></div><span class="v neg">R$ 480,00</span><a class="btn" style="padding:6px 10px">Paguei</a></div>
+        <div class="venc"><div class="data"><b>05</b>nov</div><div class="desc">Aluguel<small>fixa</small></div><span class="v neg">R$ 1.800,00</span><a class="btn" style="padding:6px 10px">Paguei</a></div>
+        <div class="venc"><div class="data"><b>10</b>nov</div><div class="desc">Fatura Nubank<small>cartão</small></div><span class="v neg">R$ 1.130,22</span><a class="btn" style="padding:6px 10px">Paguei</a></div>
+      </section>
+    </div>
+
+  </main>
+</div>
+<div class="nota-modelo">Modelo C · protótipo com dados fictícios. <a href="index.html">Ver todos os modelos</a></div>
+<script src="casca.js"></script>
+</body>
+</html>

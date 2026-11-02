@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Modelo A · Início em módulos</title>
+<link rel="stylesheet" href="base.css" />
+</head>
+<body data-ativo="inicio">
+<div class="app">
+  <nav class="trilho"></nav>
+  <main class="principal">
+
+    <div class="cabecalho">
+      <div class="saudacao">
+        <h1><span data-saudacao>Boa tarde</span>, Rafael 👋</h1>
+        <p>Domingo, 1 de novembro · mês selecionado: novembro de 2026</p>
+        <div class="relogio"><strong data-relogio>17:20:26</strong><span class="pilula" data-i="sino">3 lembretes</span></div>
+      </div>
+      <label class="busca" data-i="busca">Buscar lançamento, categoria ou tela…<kbd>Ctrl K</kbd></label>
+      <div class="acoes-topo">
+        <a class="btn" data-i="importar">Importar extrato</a>
+        <a class="btn" data-i="calendario">Conta a pagar</a>
+        <a class="btn btn-primario" data-i="mais">Novo lançamento</a>
+      </div>
+    </div>
+
+    <section class="kpis">
+      <div class="kpi"><span class="tile azul" data-i="banco"></span><div><strong>R$ 8.420,15</strong><span>saldo somado das contas</span></div></div>
+      <div class="kpi"><span class="tile verde" data-i="subir"></span><div><strong>R$ 6.200,00</strong><span>entradas de novembro</span></div></div>
+      <div class="kpi"><span class="tile vermelho" data-i="descer"></span><div><strong>R$ 3.912,40</strong><span>saídas de novembro</span></div><b class="canto neg">+12% vs out</b></div>
+      <div class="kpi"><span class="tile ambar" data-i="relogio"></span><div><strong>4</strong><span>contas vencendo em 7 dias · R$ 1.380,00</span></div><b class="canto alerta">1 vencida</b></div>
+    </section>
+
+    <div class="favoritos">★ Favoritos e recentes:
+      <a href="#" data-i="lista">Lançamentos</a><a href="#" data-i="calendario">Futuros</a><a href="#" data-i="grafico">Para onde foi o dinheiro</a><a href="#" data-i="cartao">Fatura Nubank</a><a href="#" data-i="alvo">Meta: viagem</a>
+    </div>
+
+    <div class="secao">DIA A DIA</div>
+    <div class="modulos">
+      <a class="modulo" href="tela-lancamentos.html" style="--cor: var(--azul)">
+        <header><span class="tile azul" data-i="lista"></span><h3>Lançamentos</h3></header>
+        <p>Tudo o que entrou e saiu, com filtros por período, conta e categoria.</p>
+        <div class="chips"><span>Realizados</span><span>Buscar</span><span>De / Até</span><span>+2</span></div>
+        <footer><span class="ponto"></span><b>142</b> lançamentos no mês<span class="abrir">Abrir ›</span></footer>
+      </a>
+      <a class="modulo" href="#" style="--cor: var(--ambar)">
+        <header><span class="tile ambar" data-i="calendario"></span><h3>Lançamentos futuros</h3></header>
+        <p>Contas a pagar e a receber, parcelas e despesas fixas previstas.</p>
+        <div class="chips"><span>Parcelas</span><span>Fixas</span><span>Vencidos</span></div>
+        <footer><span class="ponto vermelho"></span><b>1</b> vencido · 4 em 7 dias<span class="abrir">Abrir ›</span></footer>
+      </a>
+      <a class="modulo" href="#" style="--cor: var(--ciano)">
+        <header><span class="tile ciano" data-i="importar"></span><h3>Importar extrato</h3></header>
+        <p>Envie a planilha modelo preenchida e revise antes de salvar.</p>
+        <div class="chips"><span>Baixar modelo</span><span>Histórico</span><span>Desfazer</span></div>
+        <footer><span class="ponto ambar"></span>última importação há 6 dias<span class="abrir">Abrir ›</span></footer>
+      </a>
+      <a class="modulo" href="#" style="--cor: var(--destaque)">
+        <header><span class="tile laranja" data-i="cartao"></span><h3>Cartões e faturas</h3></header>
+        <p>Fatura atual e próxima de cada cartão, com limite usado.</p>
+        <div class="chips"><span>Nubank</span><span>Inter</span></div>
+        <footer><b>R$ 1.130,22</b> vence 10/11<span class="abrir">Abrir ›</span></footer>
+      </a>
+    </div>
+
+    <div class="secao">ANÁLISE</div>
+    <div class="modulos">
+      <a class="modulo" href="#" style="--cor: var(--violeta)">
+        <header><span class="tile violeta" data-i="grafico"></span><h3>Relatórios</h3></header>
+        <p>Para onde foi o dinheiro, evolução mensal e transferências.</p>
+        <div class="chips"><span>Por categoria</span><span>6 meses</span><span>Transferências</span></div>
+        <footer><b>Mercado</b> é o maior gasto (24%)<span class="abrir">Abrir ›</span></footer>
+      </a>
+      <a class="modulo" href="#" style="--cor: var(--verde)">
+        <header><span class="tile verde" data-i="alvo"></span><h3>Análise e metas</h3></header>
+        <p>Comparativo mês a mês, alertas de gasto e simulador de metas.</p>
+        <div class="chips"><span>Alertas</span><span>Metas</span><span>50/30/20</span></div>
+        <footer><span class="ponto vermelho"></span><b>2</b> alertas neste mês<span class="abrir">Abrir ›</span></footer>
+      </a>
+      <a class="modulo" href="#" style="--cor: var(--rosa)">
+        <header><span class="tile rosa" data-i="ia"></span><h3>Diagnóstico com IA</h3></header>
+        <p>Resumo do mês e sugestões de economia a partir dos seus totais.</p>
+        <div class="chips"><span>Gemini</span><span>Sem dados pessoais</span></div>
+        <footer>último diagnóstico: outubro<span class="abrir">Abrir ›</span></footer>
+      </a>
+    </div>
+
+    <div class="secao">CONFIGURAÇÕES</div>
+    <div class="modulos">
+      <a class="modulo" href="#" style="--cor: var(--azul)">
+        <header><span class="tile azul" data-i="carteira"></span><h3>Contas</h3></header>
+        <p>Bancos, carteira e investimentos, com débito, crédito e Pix.</p>
+        <footer>5 contas ativas<span class="abrir">Abrir ›</span></footer>
+      </a>
+      <a class="modulo" href="#" style="--cor: var(--violeta)">
+        <header><span class="tile violeta" data-i="etiqueta"></span><h3>Categorias e regras</h3></header>
+        <p>Categorias, fixas x variáveis e regras de classificação automática.</p>
+        <footer>48 categorias · 17 regras<span class="abrir">Abrir ›</span></footer>
+      </a>
+      <a class="modulo" href="tela-configuracoes.html" style="--cor: #94a3b8">
+        <header><span class="tile ciano" data-i="engrenagem"></span><h3>Perfil e aparência</h3></header>
+        <p>Foto, nome, tema de cores e chave da IA.</p>
+        <footer>tema Laranja<span class="abrir">Abrir ›</span></footer>
+      </a>
+    </div>
+
+  </main>
+</div>
+<div class="nota-modelo">Modelo A · protótipo com dados fictícios. <a href="index.html">Ver todos os modelos</a></div>
+<script src="casca.js"></script>
+</body>
+</html>

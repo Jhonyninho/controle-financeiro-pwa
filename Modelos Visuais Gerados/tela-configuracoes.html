@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tela interna · Configurações</title>
+<link rel="stylesheet" href="base.css" />
+<style>
+  .perfil { display: flex; align-items: center; gap: 18px; margin: 22px 0 6px; }
+  .perfil .avatar { width: 72px; height: 72px; font-size: 22px; outline: 3px solid var(--destaque); outline-offset: 3px; }
+  .perfil h1 { margin: 0; font-size: 22px; } .perfil p { margin: 2px 0 0; color: var(--texto-2); }
+  .temas { display: flex; gap: 10px; flex-wrap: wrap; }
+  .tema { width: 120px; border: 1px solid var(--borda-forte); border-radius: 10px; padding: 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .tema.on { border-color: var(--destaque); box-shadow: 0 0 0 2px rgba(249,115,22,.3); }
+  .tema i { display: block; height: 28px; border-radius: 6px; margin-bottom: 8px; }
+</style>
+</head>
+<body data-ativo="engrenagem">
+<div class="app">
+  <nav class="trilho"></nav>
+  <main class="principal">
+    <div class="perfil"><span class="avatar">RA</span><div><h1>Rafael Augusto</h1><p>Toque na foto para trocar · versão 1.0</p></div>
+      <div class="acoes-topo"><a class="btn" data-i="editar">Editar perfil</a></div></div>
+
+    <div class="secao">CADASTROS</div>
+    <div class="modulos">
+      <a class="modulo" href="#" style="--cor: var(--azul)"><header><span class="tile azul" data-i="carteira"></span><h3>Contas</h3></header>
+        <p>Bancos, carteira e investimentos. Saldo inicial, cartão de crédito e meios de pagamento.</p>
+        <div class="chips"><span>Banco do Brasil</span><span>Nubank</span><span>Inter</span><span>+2</span></div>
+        <footer>5 contas ativas<span class="abrir">Abrir ›</span></footer></a>
+      <a class="modulo" href="#" style="--cor: var(--violeta)"><header><span class="tile violeta" data-i="etiqueta"></span><h3>Categorias e regras</h3></header>
+        <p>Categorias com ícone e cor, fixas x variáveis e regras automáticas de importação.</p>
+        <div class="chips"><span>Saídas</span><span>Entradas</span><span>Regras</span></div>
+        <footer>48 categorias · 17 regras<span class="abrir">Abrir ›</span></footer></a>
+    </div>
+
+    <div class="secao">APARÊNCIA</div>
+    <section class="painel">
+      <h3>Cor de destaque</h3><p class="sub">Muda botões, item ativo do menu e gráficos de destaque</p>
+      <div class="temas">
+        <div class="tema on"><i style="background:linear-gradient(90deg,#f97316,#fbbf24)"></i>Laranja</div>
+        <div class="tema"><i style="background:linear-gradient(90deg,#06b6d4,#8b5cf6)"></i>Aurora</div>
+        <div class="tema"><i style="background:linear-gradient(90deg,#10b981,#34d399)"></i>Esmeralda</div>
+        <div class="tema"><i style="background:linear-gradient(90deg,#ec4899,#8b5cf6)"></i>Magenta</div>
+        <div class="tema"><i style="background:linear-gradient(90deg,#60a5fa,#e2e8f0)"></i>Gelo</div>
+      </div>
+    </section>
+
+    <div class="secao">INTELIGÊNCIA ARTIFICIAL</div>
+    <section class="painel">
+      <h3>Diagnóstico com IA</h3><p class="sub">Provedor, chave e limites de uso. A chave fica só neste aparelho.</p>
+      <div class="chips"><span>Provedor: Gemini (Google)</span><span>Modelo: gemini-2.5-flash</span><span>Usadas hoje: 0 de 100</span></div>
+    </section>
+  </main>
+</div>
+<div class="nota-modelo">Tela interna · protótipo. <a href="index.html">Ver todos os modelos</a></div>
+<script src="casca.js"></script>
+</body>
+</html>

@@ -1,0 +1,2700 @@
+/* =====================================================
+   RESET + BASE
+===================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+body {
+  background: #f1f5f9;
+  color: #0f172a;
+  padding-bottom: 40px;
+}
+
+/* =====================================================
+   HEADER
+===================================================== */
+.app-header {
+  background: linear-gradient(180deg, #1e293b, #0f172a);
+  color: #fff;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  padding: 14px 16px;
+}
+
+
+.app-header h1 {
+  font-size: 1.6rem;
+  margin-bottom: 4px;
+}
+
+#periodoAtual {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* =====================================================
+   RESUMO – COLUNAS POR TIPO DE PAGAMENTO
+===================================================== */
+.coluna h3 {
+  text-align: center;
+  font-size: 1rem;
+  margin-bottom: 14px;
+  color: #334155;
+}
+
+.cards-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* =====================================================
+   CARDS
+===================================================== */
+.cartao-topo {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.cartao-fatura,
+.valor {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+/* BANCOS */
+.cartao.santander {
+  background: linear-gradient(135deg, #c40000, #7a0000);
+}
+
+.cartao.mercado {
+  background: linear-gradient(135deg, #111827, #000000);
+}
+
+.cartao.bb {
+  background: linear-gradient(135deg, #fde047, #facc15);
+  color: #1e293b;
+}
+
+/* PIX */
+.cartao.pix-entrada {
+  background: linear-gradient(135deg, #16a34a, #065f46);
+}
+
+.cartao.pix-saida {
+  background: linear-gradient(135deg, #dc2626, #7f1d1d);
+}
+
+/* =====================================================
+   LANÇAMENTOS – TABELAS
+===================================================== */
+.tabela-box h2 {
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+  color: #1e293b;
+}
+
+/* =====================================================
+   NOVA DESPESA – FORMULÁRIO
+===================================================== */
+.form-box {
+  background: #ffffff;
+  max-width: 520px;
+  margin: 24px auto;
+  padding: 24px;
+  border-radius: 18px;
+  box-shadow: 0 12px 25px rgba(0,0,0,0.1);
+}
+
+.form-box h2 {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.form-box form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-box label {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.form-box input,
+.form-box select {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5f5;
+  font-size: 0.9rem;
+}
+
+.form-box input:focus,
+.form-box select:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.hidden {
+  display: none;
+}
+
+/* =====================================================
+   BOTÃO
+===================================================== */
+.btn-primario {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+
+/* COLUNA */
+.coluna {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 20px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.coluna h3 {
+  text-align: center;
+  font-size: 1.1rem;
+  margin-bottom: 18px;
+  color: #0f172a;
+}
+
+/* =====================================================
+   CARTÃO BASE (BANCÁRIO)
+===================================================== */
+.cartao {
+  width: 100%;
+  height: 170px;
+  border-radius: 22px;
+  padding: 18px;
+  color: #fff;
+  box-shadow: 0 18px 36px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* CHIP */
+.cartao .chip {
+  width: 44px;
+  height: 32px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #f8fafc, #cbd5f5);
+}
+
+/* TEXTO */
+.cartao-topo {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.cartao-fatura,
+.cartao .valor {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.cartao-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.cartao .bandeira {
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+/* =====================================================
+   CARTÕES ESPECÍFICOS
+===================================================== */
+
+/* SANTANDER */
+.cartao.santander {
+  background: linear-gradient(135deg, #c40000 55%, #0b0b0b 45%);
+}
+
+/* MERCADO PAGO */
+.cartao.mercado {
+  background: radial-gradient(circle at top left, #111827, #000000);
+}
+
+/* BANCO DO BRASIL */
+.cartao.bb {
+  background: linear-gradient(180deg, #fde047, #facc15);
+  color: #1e293b;
+}
+
+.cartao.bb .chip {
+  background: linear-gradient(135deg, #fde68a, #eab308);
+}
+
+/* =====================================================
+   PIX – CARTÃO CRIADO
+===================================================== */
+.cartao.pix {
+  background: linear-gradient(135deg, #16a34a, #065f46);
+}
+
+.cartao.pix .icone {
+  font-size: 2.6rem;
+}
+
+/* =====================================================
+   LANÇAMENTOS – TABELAS
+===================================================== */
+
+.tabela-box {
+  margin: 24px 16px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+}
+
+.tabela-box h2 {
+  font-size: 1.1rem;
+  margin-bottom: 14px;
+  color: #0f172a;
+}
+
+/* Wrapper para scroll horizontal */
+.tabela-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Base da tabela */
+.tabela-analitica {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+/* Cabeçalho */
+.tabela-analitica thead th {
+  background: #1e293b;
+  color: #ffffff;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  padding: 10px 8px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* =====================================================
+   TABELAS – COLUNA CATEGORIA (FIX DEFINITIVO)
+===================================================== */
+
+/* Base da tabela */
+.tabela-analitica tbody td {
+  background: #ffffff;
+  position: relative;
+  z-index: 1;
+  color: #334155;
+}
+
+/* Coluna Categoria (sticky correto) */
+.tabela-analitica tbody td:first-child {
+  background: #f8fafc;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* Cabeçalho da coluna Categoria */
+.tabela-analitica thead th:first-child {
+  background: #f8fafc;
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  color: #0f172a;
+  text-align: left;
+}
+
+
+/* =====================================================
+   TABELAS – ALINHAMENTO CORRETO FINAL
+===================================================== */
+
+/* Base */
+.tabela-analitica tbody td {
+  padding: 10px 8px;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #334155;
+}
+
+/* Primeira coluna (Categoria / Vencimento) */
+.tabela-analitica tbody td:first-child {
+  text-align: left;
+}
+
+
+/* Coluna de ações */
+.tabela-analitica tbody td:last-child {
+  white-space: nowrap;
+}
+
+
+/* Linhas alternadas */
+.tabela-analitica tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+/* Hover */
+.tabela-analitica tbody tr:hover {
+  background: #eef2ff;
+}
+
+/* Totais */
+.tabela-analitica tfoot th,
+.tabela-analitica tfoot td {
+  padding: 12px 8px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  background: #e0e7ff;
+  color: #1e293b;
+  text-align: right;
+}
+
+/* Total geral */
+.tabela-analitica tfoot th:first-child {
+  text-align: left;
+}
+
+/* Valores zero */
+.tabela-analitica td.zero {
+  color: #94a3b8;
+}
+
+/* Valores positivos */
+.tabela-analitica td.positivo {
+  color: #15803d;
+  font-weight: 600;
+}
+
+/* Valores negativos */
+.tabela-analitica td.negativo {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+/* =====================================================
+   CORREÇÃO – TEXTO DA COLUNA CATEGORIA
+===================================================== */
+.tabela-analitica tbody td:first-child {
+  color: #0f172a;        /* texto escuro */
+  font-weight: 600;
+}
+
+.tabela-analitica tbody tr:hover td:first-child {
+  color: #0f172a;        /* mantém legível no hover */
+}
+
+/* =====================================================
+   MODAL – EDIÇÃO / CONSULTA DE DESPESAS
+===================================================== */
+
+/* Caixa do modal */
+.modal {
+  background: #ffffff;
+  width: 90%;
+  max-width: 720px;
+  max-height: 85vh;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+  overflow-y: auto;
+}
+
+/* Título do modal */
+.modal h3 {
+  font-size: 1.2rem;
+  margin-bottom: 16px;
+  color: #0f172a;
+}
+
+/* Agrupamento por mês */
+.modal-mes {
+  margin-top: 18px;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+/* Linha de despesa */
+.modal-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.85rem;
+}
+
+/* Informações */
+.modal-item span {
+  display: inline-block;
+}
+
+/* Ações */
+.modal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Botão editar */
+.btn-editar {
+  background: #facc15;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+/* Botão excluir */
+.btn-excluir {
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+/* Botão pagar */
+.btn-pagar {
+  background: #16a34a;            /* verde */
+  color: #ffffff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Hover */
+.btn-pagar:hover {
+  background: #15803d;
+}
+
+
+/* Hover */
+.btn-editar:hover {
+  background: #eab308;
+}
+
+.btn-excluir:hover {
+  background: #b91c1c;
+}
+
+/* =====================================================
+   DRILL DOWN – LINHAS EDITÁVEIS
+===================================================== */
+.linha-editavel {
+  cursor: pointer;
+}
+
+.linha-editavel:hover {
+  background: #eef2ff;
+}
+
+/* =====================================================
+   MODAL DE EDIÇÃO – COMPATÍVEL COM app.js
+===================================================== */
+.modal-edicao {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-edicao .modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.modal-edicao .modal-box {
+  position: relative;
+  background: #ffffff;
+  width: 90%;
+  max-width: 520px;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+  z-index: 1;
+}
+
+.modal-edicao h3 {
+  margin-bottom: 14px;
+  font-size: 1.2rem;
+  color: #0f172a;
+}
+
+.modal-edicao label {
+  font-size: 0.8rem;
+  color: #475569;
+  margin-top: 10px;
+  display: block;
+}
+
+.modal-edicao input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #cbd5f5;
+  margin-top: 4px;
+}
+
+/* =====================================================
+   AÇÕES DO MODAL
+===================================================== */
+.modal-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.modal-acoes button {
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Botões */
+.modal-acoes #btn-salvar {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.modal-acoes #btn-cancelar {
+  background: #e5e7eb;
+  color: #1e293b;
+}
+
+.modal-acoes #btn-excluir,
+.modal-acoes .danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* Hover */
+.modal-acoes #btn-salvar:hover {
+  background: #1d4ed8;
+}
+
+.modal-acoes #btn-cancelar:hover {
+  background: #cbd5f5;
+}
+
+.modal-acoes #btn-excluir:hover {
+  background: #b91c1c;
+}
+
+/* =====================================================
+   RESUMO GERAL – CARDS (NOVO / ISOLADO)
+===================================================== */
+
+.resumo-geral {
+  padding: 32px 24px;
+}
+
+.cards-resumo-geral {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+/* Card base */
+.cards-resumo-geral .card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.cards-resumo-geral .card span {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.cards-resumo-geral .card strong {
+  font-size: 1.6rem;
+  margin-top: 8px;
+}
+
+/* Cores específicas */
+.cards-resumo-geral .entrada {
+  border-left: 6px solid #16a34a;
+}
+
+.cards-resumo-geral .saida {
+  border-left: 6px solid #dc2626;
+}
+
+.cards-resumo-geral .futuro {
+  border-left: 6px solid #facc15;
+}
+
+.cards-resumo-geral .saldo {
+  border-left: 6px solid #2563eb;
+}
+
+.cards-resumo-geral .projetado {
+  border-left: 6px solid #7c3aed;
+  background: #f5f3ff;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .resumo-geral {
+    padding: 20px 16px;
+  }
+
+  .cards-resumo-geral .card strong {
+    font-size: 1.4rem;
+  }
+}
+
+/* =====================================================
+   MODAL – FORM PADRÃO (IGUAL NOVA DESPESA)
+===================================================== */
+
+.modal-edicao .form-box {
+  max-width: 520px;
+  padding: 24px;
+}
+
+.modal-edicao h2 {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.modal-edicao form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* =====================================================
+   ALINHAMENTO – SOMENTE TABELAS (SAFE)
+===================================================== */
+
+.tabela-analitica thead th {
+  vertical-align: middle;
+}
+
+.tabela-analitica tbody td {
+  vertical-align: middle;
+}
+
+/* Primeira coluna */
+.tabela-analitica thead th:first-child,
+.tabela-analitica tbody td:first-child {
+  text-align: left;
+}
+
+/* =====================================================
+   ALINHAMENTO CORRETO – TABELAS ANALÍTICAS
+===================================================== */
+
+/* Categoria (sempre esquerda) */
+.tabela-analitica th:first-child,
+.tabela-analitica td:first-child {
+  text-align: left;
+}
+
+/* Colunas numéricas (direita) */
+.tabela-analitica th:not(:first-child),
+.tabela-analitica td:not(:first-child) {
+  text-align: right;
+}
+
+/* Footer mantém padrão */
+.tabela-analitica tfoot th,
+.tabela-analitica tfoot td {
+  text-align: right;
+}
+
+.tabela-analitica tfoot th:first-child {
+  text-align: left;
+}
+
+
+/* Coluna ação */
+.tabela-analitica thead th:nth-child(5),
+.tabela-analitica tbody td:nth-child(5) {
+  text-align: center;
+}
+
+/* =====================================================
+   AJUSTE FINAL – COLUNA TOTAL (CATEGORIA × TIPO)
+===================================================== */
+
+/* Garante largura fixa e alinhamento correto */
+#tabelaCategoriaTipo th:last-child,
+#tabelaCategoriaTipo td:last-child {
+  width: 140px;
+  min-width: 140px;
+  text-align: right;
+  padding-right: 12px;
+  white-space: nowrap;
+}
+
+/* =====================================================
+   AJUSTE FINAL – COLUNA TOTAL (ENTRADAS × TIPO)
+===================================================== */
+
+#tabelaEntradasTipo th:last-child,
+#tabelaEntradasTipo td:last-child {
+  width: 140px;
+  min-width: 140px;
+  text-align: right;
+  padding-right: 12px;
+  white-space: nowrap;
+}
+
+/* =====================================================
+   CARTÕES – SKINS REALISTAS (BANCOS)
+===================================================== */
+
+/* ================= ITAÚ ================= */
+.cartao.itau {
+  background: linear-gradient(135deg, #ff6a00 55%, #ff8c1a 45%);
+}
+
+.cartao.itau .chip {
+  background: linear-gradient(135deg, #ffe4c7, #fbbf24);
+}
+
+.cartao.itau .bandeira {
+  color: #ffffff;
+}
+
+/* ================= NUBANK ================= */
+.cartao.nubank {
+  background: linear-gradient(135deg, #7c3aed 55%, #5b21b6 45%);
+}
+
+.cartao.nubank .chip {
+  background: linear-gradient(135deg, #ede9fe, #c4b5fd);
+}
+
+.cartao.nubank .bandeira {
+  color: #ffffff;
+}
+
+/* ================= BRADESCO ================= */
+.cartao.bradesco {
+  background: linear-gradient(135deg, #b91c1c 55%, #7f1d1d 45%);
+}
+
+.cartao.bradesco .chip {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+}
+
+.cartao.bradesco .bandeira {
+  color: #ffffff;
+}
+
+/* ================= INTER ================= */
+.cartao.inter {
+  background: linear-gradient(135deg, #ff8c00 55%, #ffb703 45%);
+}
+
+.cartao.inter .chip {
+  background: linear-gradient(135deg, #fff7ed, #fed7aa);
+}
+
+.cartao.inter .bandeira {
+  color: #ffffff;
+}
+
+/* ================= BTG PACTUAL ================= */
+.cartao.btg {
+  background: linear-gradient(135deg, #0f172a 55%, #1e293b 45%);
+}
+
+.cartao.btg .chip {
+  background: linear-gradient(135deg, #e5e7eb, #94a3b8);
+}
+
+.cartao.btg .bandeira {
+  color: #e5e7eb;
+}
+
+/* ================= CAIXA ================= */
+.cartao.caixa {
+  background: linear-gradient(135deg, #0a3cff 55%, #1e40af 45%);
+}
+
+.cartao.caixa .chip {
+  background: linear-gradient(135deg, #dbeafe, #93c5fd);
+}
+
+.cartao.caixa .bandeira {
+  color: #ffffff;
+}
+
+/* =====================================================
+   FILTROS – LANÇAMENTOS FUTUROS
+===================================================== */
+
+.filtros-futuros {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.filtros-futuros > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.filtros-futuros label {
+  font-size: 0.75rem;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.filtros-futuros select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5f5;
+  font-size: 0.85rem;
+  min-width: 120px;
+}
+
+#btnLimparFiltrosFuturo {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: none;
+  background: #e5e7eb;
+  color: #1e293b;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+#btnLimparFiltrosFuturo:hover {
+  background: #cbd5f5;
+}
+
+/* =====================================================
+   LOGIN – TELA INICIAL (ISOLADO / SEGURO)
+===================================================== */
+
+/* Tela de login ocupa tudo, sem afetar o app */
+#login-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Quando escondido, sai completamente da tela */
+#login-screen.hidden {
+  display: none !important;
+}
+
+/* Caixa central */
+.login-box {
+  background: #ffffff;
+  width: 100%;
+  max-width: 380px;
+  padding: 32px 34px;
+  border-radius: 22px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+  text-align: center;
+}
+
+/* Título */
+.login-box h1 {
+  font-size: 1.4rem;
+  margin-bottom: 6px;
+  color: #0f172a;
+}
+
+/* Subtítulo */
+.login-box .subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 22px;
+}
+
+/* Formulário */
+.login-box form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Labels */
+.login-box label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+  text-align: left;
+}
+
+/* Inputs */
+.login-box input {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5f5;
+  font-size: 0.9rem;
+}
+
+.login-box input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+/* Botão Entrar */
+.login-box button {
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.login-box button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(37,99,235,0.4);
+}
+
+/* Erro de login */
+.login-error {
+  margin-top: 10px;
+  font-size: 0.75rem;
+  color: #dc2626;
+  text-align: center;
+}
+
+/* =====================================================
+   MOBILE-FIRST – APP LAYOUT
+===================================================== */
+
+/* Botão menu */
+.btn-menu {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.4rem;
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+/* Conteúdo ocupa tela toda */
+.tab-content {
+  padding-bottom: 80px;
+}
+
+/* =====================================================
+   RESUMO – MOBILE FIRST
+===================================================== */
+
+.resumo-pagamentos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 16px;
+}
+
+.coluna {
+  padding: 16px;
+}
+
+/* Cartão ocupa largura total */
+.cartao {
+  height: auto;
+  min-height: 150px;
+}
+
+/* =====================================================
+   MENU LATERAL (DRAWER)
+===================================================== */
+
+.menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  z-index: 998;
+}
+
+.menu-overlay.hidden {
+  display: none;
+}
+
+.side-menu {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 260px;
+  background: linear-gradient(180deg, #0f172a, #1e293b);
+  z-index: 999;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+}
+
+.side-menu.open {
+  transform: translateX(0);
+}
+
+.side-menu-nav {
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.side-link {
+  background: none;
+  border: none;
+  color: #e5e7eb;
+  font-size: 0.95rem;
+  padding: 12px;
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.side-link:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.side-menu-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  font-size: 0.85rem;
+  color: #cbd5f5;
+}
+
+/* =====================================================
+   DESKTOP (>= 1024px)
+===================================================== */
+@media (min-width: 1024px) {
+
+  /* Menu lateral fixo no desktop */
+  .side-menu {
+    transform: translateX(0);
+    position: fixed;
+  }
+
+  .menu-overlay {
+    display: none;
+  }
+
+  .btn-menu {
+    display: none;
+  }
+
+  /* Conteúdo deslocado para não ficar sob o menu */
+  #app {
+    margin-left: 260px;
+  }
+
+  .resumo-pagamentos {
+    grid-template-columns: repeat(4, 1fr);
+    padding: 32px 24px;
+  }
+}
+
+.side-link.active {
+  background: rgba(255,255,255,0.15);
+  font-weight: 700;
+}
+
+.side-link span {
+  margin-left: 10px;
+}
+
+@media (max-width: 768px) {
+
+  /* =====================================================
+     GERAL
+  ===================================================== */
+  body {
+    font-size: 14px;
+  }
+
+  .tab-content {
+    padding-bottom: 90px;
+  }
+
+  /* =====================================================
+     TABELAS – COMPORTAMENTO GERAL
+  ===================================================== */
+
+  .tabela-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabela-analitica {
+    font-size: 0.75rem;
+    min-width: 720px;
+  }
+
+  .tabela-analitica thead th {
+    font-size: 0.65rem;
+    padding: 8px 6px;
+  }
+
+  .tabela-analitica tbody td {
+    padding: 8px 6px;
+  }
+
+  /* Primeira coluna sempre visível */
+  .tabela-analitica thead th:first-child,
+  .tabela-analitica tbody td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: #f8fafc;
+    font-weight: 600;
+  }
+
+  /* =====================================================
+     TABELAS DE AÇÃO → MOBILE = SEM BOTÕES
+     (AÇÃO VAI PARA O MODAL)
+  ===================================================== */
+
+  /* Categoria × Mês */
+  #tabelaCategoriaMes .btn-editar,
+  #tabelaCategoriaMes .btn-excluir {
+    display: none;
+  }
+
+  #tabelaCategoriaMes tbody tr {
+    cursor: pointer;
+  }
+
+  /* Entradas × Tipo */
+  #tabelaEntradasTipo .btn-editar,
+  #tabelaEntradasTipo .btn-excluir {
+    display: none;
+  }
+
+  #tabelaEntradasTipo tbody tr {
+    cursor: pointer;
+  }
+
+
+  /* =====================================================
+     COLAPSAR TABELAS NO MOBILE (FOCO)
+  ===================================================== */
+
+  .tabela-box {
+    margin-bottom: 12px;
+  }
+
+  .tabela-box h2 {
+    cursor: pointer;
+  }
+
+  .tabela-box .tabela-wrapper {
+    display: none;
+  }
+
+  .tabela-box.aberta .tabela-wrapper {
+    display: block;
+  }
+
+  /* =====================================================
+     MODAIS – MOBILE
+  ===================================================== */
+
+  .modal-edicao .modal-box {
+    width: 92%;
+    max-width: none;
+    padding: 18px;
+  }
+
+  .modal-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .modal-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+}
+  
+/* ======================================================
+   TEMA AZUL METÁLICO – FINAL
+   (APLICAR NO FINAL DO style.css)
+====================================================== */
+
+:root {
+  --metal-bg: #0f172a;        /* fundo principal */
+  --metal-bg-soft: #111827;  /* áreas internas */
+  --metal-panel: #020617;    /* menu / painéis */
+  --metal-blue: #2563eb;     /* azul metálico */
+  --metal-blue-soft: #1d4ed8;
+  --metal-border: #1e293b;   /* bordas */
+  --metal-text: #e5e7eb;     /* texto principal */
+  --metal-muted: #94a3b8;    /* texto secundário */
+}
+
+/* ================= BODY / APP ================= */
+
+body {
+  background: linear-gradient(
+    180deg,
+    #020617 0%,
+    #0f172a 100%
+  );
+  color: var(--metal-text);
+}
+
+#app {
+  background-color: var(--metal-bg);
+}
+
+/* ================= HEADER ================= */
+
+.app-header,
+.app-bar {
+  background: linear-gradient(
+    180deg,
+    #020617,
+    #020617
+  );
+  border-bottom: 1px solid var(--metal-border);
+}
+
+.app-title h1 {
+  color: var(--metal-text);
+}
+
+#periodoAtual {
+  color: var(--metal-muted);
+}
+
+/* ================= MENU LATERAL ================= */
+
+.side-menu {
+  background-color: var(--metal-panel);
+  border-right: 1px solid var(--metal-border);
+}
+
+.side-link {
+  color: var(--metal-muted);
+}
+
+.side-link.active {
+  background: linear-gradient(
+    90deg,
+    rgba(37,99,235,0.15),
+    transparent
+  );
+  color: #ffffff;
+  border-left: 3px solid var(--metal-blue);
+}
+
+.side-link:hover {
+  background-color: rgba(37,99,235,0.12);
+  color: #ffffff;
+}
+
+.side-menu-footer {
+  border-top: 1px solid var(--metal-border);
+  color: var(--metal-muted);
+}
+
+/* ================= CONTEÚDO DAS ABAS ================= */
+
+.tab-content {
+  background-color: var(--metal-bg-soft);
+}
+
+/* ================= TABELAS / SEÇÕES ================= */
+
+.tabela-box,
+.form-box {
+  background-color: #020617;
+  border: 1px solid var(--metal-border);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+
+.tabela-box h2 {
+  color: #ffffff;
+  border-bottom: 1px solid var(--metal-border);
+}
+
+/* ================= TABELAS ================= */
+
+.tabela-analitica {
+  background-color: transparent;
+  color: var(--metal-text);
+}
+
+.tabela-analitica th {
+  background-color: #020617;
+  color: var(--metal-muted);
+  border-bottom: 1px solid var(--metal-border);
+}
+
+.tabela-analitica td {
+  border-bottom: 1px solid rgba(30,41,59,0.5);
+}
+
+.tabela-analitica tr:hover {
+  background-color: rgba(37,99,235,0.08);
+}
+
+
+/* ================= FORMULÁRIOS ================= */
+
+input,
+select {
+  background-color: #020617;
+  color: var(--metal-text);
+  border: 1px solid var(--metal-border);
+}
+
+input::placeholder {
+  color: var(--metal-muted);
+}
+
+label {
+  color: var(--metal-muted);
+}
+
+/* ================= MODAIS ================= */
+
+.modal-box {
+  background-color: #020617;
+  border: 1px solid var(--metal-border);
+  color: var(--metal-text);
+}
+
+.modal-overlay {
+  background-color: rgba(2,6,23,0.85);
+}
+
+/* ======================================================
+   AJUSTE DE CONTRASTE – RESUMO GERAL
+====================================================== */
+
+.cards-resumo-geral .card {
+  background-color: #020617; /* mantém metálico */
+}
+
+/* Texto descritivo */
+.cards-resumo-geral .card span {
+  color: #cbd5f5;           /* cinza claro visível */
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* Valores principais */
+.cards-resumo-geral .card strong {
+  color: #ffffff;           /* branco puro */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+/* Cores específicas (reforço visual) */
+.cards-resumo-geral .entrada strong {
+  color: #4ade80;           /* verde claro */
+}
+
+.cards-resumo-geral .saida strong {
+  color: #f87171;           /* vermelho suave */
+}
+
+.cards-resumo-geral .saldo strong {
+  color: #60a5fa;           /* azul claro */
+}
+
+.cards-resumo-geral .projetado strong {
+  color: #c084fc;           /* roxo claro */
+}
+
+.logout-container {
+  margin-top: auto;              /* empurra para o final do menu */
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-logout {
+  width: 100%;
+  max-width: 180px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: none;
+
+  background: linear-gradient(135deg, #ff4d4d, #ff1f1f);
+  color: #fff;
+
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition: all 0.25s ease;
+}
+
+.btn-logout:hover {
+  background: linear-gradient(135deg, #ff6b6b, #ff3b3b);
+  transform: translateY(-1px);
+}
+
+.btn-logout:active {
+  transform: scale(0.97);
+}
+
+.btn-logout .icon {
+  font-size: 16px;
+}
+
+.btn-logout {
+  background: transparent;
+  border: 1px solid rgba(255, 80, 80, 0.6);
+  color: #ff5a5a;
+}
+
+.btn-logout:hover {
+  background: rgba(255, 80, 80, 0.12);
+}
+
+/* ======================================================
+   MODAL – TEMA AZUL METÁLICO (FINAL / DEFINITIVO)
+====================================================== */
+
+/* Caixa do modal */
+.modal-edicao .modal-box {
+  background-color: var(--metal-bg-soft); /* mesmo fundo do app */
+  border: 1px solid var(--metal-border);
+  color: var(--metal-text);
+}
+
+/* Título */
+.modal-edicao h3 {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* Labels */
+.modal-edicao label {
+  color: var(--metal-muted); /* secundário, mas visível */
+  font-weight: 600;
+  opacity: 1;               /* REMOVE qualquer herança */
+}
+
+/* Inputs e selects */
+.modal-edicao input,
+.modal-edicao select {
+  background-color: #020617;      /* mesmo dos formulários */
+  color: #ffffff;                 /* texto legível */
+  border: 1px solid var(--metal-border);
+}
+
+/* Texto digitado */
+.modal-edicao input,
+.modal-edicao select,
+.modal-edicao textarea {
+  font-weight: 500;
+}
+
+/* Placeholder */
+.modal-edicao input::placeholder {
+  color: var(--metal-muted);
+  opacity: 0.9;
+}
+
+/* Texto de leitura (listas, spans, valores) */
+.modal-edicao span,
+.modal-edicao p,
+.modal-edicao strong {
+  color: var(--metal-text);
+}
+
+/* Modal de LISTA (Categoria × Mês) */
+.modal-edicao .modal-item span {
+  color: var(--metal-muted);
+}
+
+.modal-edicao .modal-item strong {
+  color: #ffffff;
+}
+
+/* Separadores */
+.modal-edicao .modal-item {
+  border-bottom: 1px solid rgba(148,163,184,0.2);
+}
+
+/* Overlay */
+.modal-edicao .modal-overlay {
+  background-color: rgba(2,6,23,0.88);
+}
+
+/* DRE nunca colapsa */
+#tab-lancamentos .tabela-wrapper {
+  display: block !important;
+}
+
+/* ======================================================
+   DRE – FILTROS (LAYOUT)
+====================================================== */
+
+#tab-lancamentos .dre-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+#tab-lancamentos .dre-filtros > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+}
+
+#tab-lancamentos .dre-filtros label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--metal-muted, #94a3b8);
+}
+
+#tab-lancamentos .dre-filtros select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--metal-border, #1e293b);
+  background-color: #020617;
+  color: #ffffff;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+
+  #tab-lancamentos .dre-filtros {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  #tab-lancamentos .dre-filtros > div {
+    width: 100%;
+  }
+
+}
+
+  /* ======================================================
+   DRE – DROPDOWN MULTISELECT (MESES)
+====================================================== */
+
+.dre-dropdown {
+  position: relative;
+}
+
+.dre-dropdown-btn {
+  width: 180px;
+  height: 38px;
+
+  background-color: #020617;
+  color: #ffffff;
+
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+
+  padding: 0 12px;
+  text-align: left;
+
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.dre-dropdown-btn::after {
+  content: '▾';
+  float: right;
+  opacity: 0.6;
+}
+
+.dre-dropdown-menu {
+  position: absolute;
+  top: 42px;
+  left: 0;
+  z-index: 50;
+
+  width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+
+  background-color: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+
+  padding: 8px 0;
+}
+
+.dre-dropdown-menu label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.dre-dropdown-menu label:hover {
+  background-color: #0f172a;
+}
+
+.hidden {
+  display: none;
+}
+
+/* ======================================================
+   DRE – CORES CONTÁBEIS (ESPECIFICIDADE CORRETA)
+====================================================== */
+
+/* Células numéricas da DRE */
+.tabela-analitica td.valor-positivo,
+.tabela-analitica th.valor-positivo {
+  color: #15803d !important; /* verde escuro */
+  font-weight: 600;
+}
+
+.tabela-analitica td.valor-negativo,
+.tabela-analitica th.valor-negativo {
+  color: #b91c1c !important; /* vermelho escuro */
+  font-weight: 600;
+}
+
+/* ======================================================
+   AJUSTE LAYOUT – FUTUROS (SEM ALTERAR HTML)
+====================================================== */
+
+.filtros-futuros-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* Faz os dois blocos se comportarem igual */
+.filtros-futuros,
+.acoes-futuros {
+  display: flex;
+  align-items: flex-end;
+}
+
+/* Remove possível margem herdada */
+.acoes-futuros {
+  margin-bottom: 18px; /* igual ao .filtros-futuros */
+}
+
+/* Deixa o botão do mesmo tamanho do Limpar */
+.btn-consolidar-futuro {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: none;
+
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-consolidar-futuro:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ======================================================
+   CORREÇÃO PWA – TABELAS VISÍVEIS
+====================================================== */
+
+#tab-futuros .tabela-wrapper,
+#tab-contas .tabela-wrapper {
+  display: block !important;
+}
+
+/*======================================================
+    SUB CATEGORIAS
+======================================================*/
+.dre-toggle{
+  border:none;
+  background:none;
+  cursor:pointer;
+  font-size:12px;
+  margin-right:6px;
+}
+
+.dre-subcategoria td{
+  padding-left:32px;
+  font-size:0.82rem;
+  opacity:0.9;
+}
+
+.dre-sub{
+  padding-left:32px !important;
+}
+
+/* ======================================================
+   HISTÓRICO – VISÍVEL NO MOBILE
+====================================================== */
+
+#tab-historico .tabela-wrapper {
+  display: block !important;
+}
+
+#tab-historico .tabela-analitica {
+  min-width: 900px;
+}
+
+/*=====================================================
+  TABELA FUTUROS - RODAPÉ MOBILE
+=====================================================*/
+
+#tabelaLancamentosFuturos tfoot th{
+    background:#e0e7ff;
+    font-weight:700;
+    white-space:nowrap;
+}
+
+#tabelaLancamentosFuturos tfoot th:first-child{
+    background:#e0e7ff;
+}
+
+#tabelaLancamentosFuturos tfoot th:last-child{
+    text-align:right;
+}
+
+/* =====================================================
+   RESUMO GERAL
+===================================================== */
+
+.resumo-geral{
+
+    display:flex;
+    flex-direction:column;
+
+    min-height:calc(100vh - 115px);
+
+    padding:18px;
+
+    gap:18px;
+
+}
+
+.cards-resumo-geral{
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(auto-fit,minmax(260px,1fr));
+
+    gap:18px;
+
+    align-content:start;
+
+    flex:1;
+
+}
+
+.card-resumo{
+
+    background:#020617;
+
+    border:1px solid #1e293b;
+
+    border-left:5px solid #ddd;
+
+    border-radius:18px;
+
+    padding:22px;
+
+    box-shadow:
+        0 8px 20px rgba(0,0,0,.35);
+
+    transition:.25s;
+
+}
+
+.card-resumo:hover{
+
+    transform:translateY(-4px);
+
+    box-shadow:
+        0 12px 28px rgba(0,0,0,.12);
+
+}
+
+.card-resumo.positivo{
+
+    border-left-color:#2e7d32;
+
+}
+
+.card-resumo.negativo{
+
+    border-left-color:#c62828;
+
+}
+
+.card-resumo-topo{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin-bottom:18px;
+
+}
+
+.card-resumo .titulo{
+
+    font-size:15px;
+
+    color:#cbd5e1;
+
+    font-weight:600;
+
+}
+
+.card-resumo .indicador{
+
+    font-size:22px;
+
+    font-weight:bold;
+
+}
+
+.card-resumo .valor{
+
+    font-size:34px;
+
+    font-weight:700;
+
+    line-height:1.2;
+
+    color:#ffffff;
+
+}
+
+.card-resumo.positivo .valor{
+
+    color:#2e7d32;
+
+}
+
+.card-resumo.negativo .valor{
+
+    color:#c62828;
+
+}
+
+/* =====================================================
+   PROJEÇÃO
+===================================================== */
+
+.projecao-toolbar{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:10px;
+
+    margin-bottom:8px;
+
+}
+
+.btn-projecao{
+
+    flex:1;
+
+    min-width:140px;
+
+    height:42px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:#1f2937;
+
+    color:#cbd5e1;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+}
+
+.btn-projecao:hover{
+
+    background:#334155;
+
+}
+
+.btn-projecao.ativo{
+
+    background:#2563eb;
+
+    color:#fff;
+
+}
+
+/* =====================================================
+   PAINEL DE MESES
+===================================================== */
+
+#painelMesesProjecao{
+
+    margin-bottom:18px;
+
+    padding:16px;
+
+    border-radius:12px;
+
+    background:#fafafa;
+
+    border:1px solid #ddd;
+
+}
+
+.meses-grid{
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(auto-fit,minmax(150px,1fr));
+
+    gap:10px;
+
+}
+
+.meses-grid label{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:8px;
+
+    cursor:pointer;
+
+}
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+@media (max-width:768px){
+
+    .resumo-geral{
+
+        min-height:auto;
+
+        padding:14px;
+
+    }
+
+    .projecao-toolbar{
+
+        display:grid;
+
+        grid-template-columns:1fr 1fr;
+
+        gap:8px;
+
+    }
+
+    .btn-projecao{
+
+        width:100%;
+
+        min-width:0;
+
+    }
+
+    .cards-resumo-geral{
+
+        grid-template-columns:1fr;
+
+        gap:14px;
+
+    }
+
+    .card-resumo{
+
+        padding:18px;
+
+    }
+
+    .card-resumo .valor{
+
+        font-size:30px;
+
+    }
+
+}
+
+/* =====================================================
+   RESUMO GERAL - CABEÇALHO
+===================================================== */
+
+.resumo-header{
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    margin-bottom:18px;
+
+}
+
+.resumo-header h2{
+
+    color:#ffffff;
+
+    font-size:32px;
+
+    font-weight:700;
+
+    text-align:center;
+
+}
+
+/* =====================================================
+   INTELIGÊNCIA FINANCEIRA
+===================================================== */
+
+.inteligencia-financeira{
+
+    padding:20px;
+
+}
+
+.inteligencia-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    flex-wrap:wrap;
+
+    gap:16px;
+
+    margin-bottom:24px;
+
+}
+
+.inteligencia-header h2{
+
+    color:#fff;
+
+    font-size:30px;
+
+    font-weight:700;
+
+}
+
+.if-filtros{
+
+    display:flex;
+
+    gap:10px;
+
+    flex-wrap:wrap;
+
+}
+
+.if-filtros select,
+.if-filtros button{
+
+    height:40px;
+
+    padding:0 14px;
+
+    border-radius:10px;
+
+}
+
+.cards-inteligencia{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+
+    gap:16px;
+
+}
+
+.card-inteligencia{
+
+    background:#020617;
+
+    border:1px solid #1e293b;
+
+    border-radius:16px;
+
+    padding:18px;
+
+    box-shadow:0 8px 18px rgba(0,0,0,.30);
+
+}
+
+.card-inteligencia span{
+
+    display:block;
+
+    color:#94a3b8;
+
+    margin-bottom:8px;
+
+    font-size:14px;
+
+}
+
+.card-inteligencia strong{
+
+    color:#fff;
+
+    font-size:24px;
+
+}
+
+.card-inteligencia.destaque{
+
+    grid-column:1/-1;
+
+}
+
+.card-inteligencia.destaque p{
+
+    margin-top:12px;
+
+    color:#cbd5e1;
+
+    line-height:1.6;
+
+}
+
+/* =====================================================
+   INSIGHTS / COMPARATIVO
+===================================================== */
+
+.if-insights,
+.if-comparativo{
+
+    margin-top:28px;
+
+    background:#020617;
+
+    border:1px solid #1e293b;
+
+    border-radius:16px;
+
+    padding:20px;
+
+}
+
+.if-insights h3,
+.if-comparativo h3{
+
+    color:#ffffff;
+
+    margin-bottom:18px;
+
+}
+
+/* Mobile */
+
+@media(max-width:768px){
+
+    .inteligencia-header{
+
+        flex-direction:column;
+
+        align-items:stretch;
+
+    }
+
+    .if-filtros{
+
+        display:grid;
+
+        grid-template-columns:1fr;
+
+    }
+
+    .cards-inteligencia{
+
+        grid-template-columns:1fr;
+
+    }
+
+}
+
+/* =====================================================
+   DISTRIBUIÇÃO INTELIGENTE DAS DESPESAS
+===================================================== */
+
+.if-distribuicao{
+
+    margin-top:28px;
+
+    background:#020617;
+
+    border:1px solid #1e293b;
+
+    border-radius:16px;
+
+    padding:20px;
+
+}
+
+.if-distribuicao h3{
+
+    color:#ffffff;
+
+    margin-bottom:20px;
+
+}
+
+.if-distribuicao-lista{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:18px;
+
+}
+
+.if-item{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:8px;
+
+}
+
+.if-item-topo{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    gap:12px;
+
+}
+
+.if-item-esquerda{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    font-size:16px;
+
+    color:#ffffff;
+
+    font-weight:600;
+
+}
+
+.if-emoji{
+
+    font-size:26px;
+
+    width:34px;
+
+    text-align:center;
+
+}
+
+.if-valor{
+
+    color:#cbd5e1;
+
+    font-weight:700;
+
+    white-space:nowrap;
+
+}
+
+.if-barra{
+
+    width:100%;
+
+    height:14px;
+
+    background:#1e293b;
+
+    border-radius:999px;
+
+    overflow:hidden;
+
+}
+
+.if-preenchimento{
+
+    height:100%;
+
+    border-radius:999px;
+
+    transition:width .5s ease;
+
+}
+
+.if-percentual{
+
+    text-align:right;
+
+    color:#94a3b8;
+
+    font-size:13px;
+
+}
+
+@media(max-width:768px){
+
+    .if-item-topo{
+
+        align-items:flex-start;
+
+        flex-direction:column;
+
+    }
+
+    .if-valor{
+
+        padding-left:44px;
+
+    }
+
+}
+
+/* =====================================================
+   DASHBOARD (NOVA ESTRUTURA)
+===================================================== */
+
+.dashboard-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin:22px 22px 10px;
+
+}
+
+.dashboard-titulo h2{
+
+    color:#ffffff;
+
+    font-size:30px;
+
+    font-weight:700;
+
+}
+
+.dashboard-titulo span{
+
+    display:block;
+
+    margin-top:4px;
+
+    color:#94a3b8;
+
+    font-size:14px;
+
+}
+
+.dashboard-cards{
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(auto-fit,minmax(250px,1fr));
+
+    gap:18px;
+
+    margin:20px;
+
+}
+
+.dashboard-card{
+
+    background:#020617;
+
+    border:1px solid #1e293b;
+
+    border-radius:18px;
+
+    padding:22px;
+
+    transition:.25s;
+
+    box-shadow:
+        0 10px 24px rgba(0,0,0,.35);
+
+}
+
+.dashboard-card:hover{
+
+    transform:translateY(-4px);
+
+}
+
+.dashboard-card .titulo{
+
+    color:#94a3b8;
+
+    font-size:14px;
+
+    margin-bottom:10px;
+
+}
+
+.dashboard-card .valor{
+
+    font-size:34px;
+
+    font-weight:700;
+
+    color:#ffffff;
+
+}
+
+.dashboard-graficos{
+
+    margin:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(auto-fit,minmax(420px,1fr));
+
+    gap:20px;
+
+}
+
+.dashboard-box{
+
+    background:#020617;
+
+    border:1px solid #1e293b;
+
+    border-radius:18px;
+
+    padding:20px;
+
+    min-height:300px;
+
+}
+
+.dashboard-box h3{
+
+    color:#ffffff;
+
+    margin-bottom:18px;
+
+}
+
+.dashboard-ultimos{
+
+    margin:20px;
+
+}
+
+.dashboard-lista{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:12px;
+
+}
+
+.dashboard-item{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    background:#020617;
+
+    border:1px solid #1e293b;
+
+    border-radius:14px;
+
+    padding:16px;
+
+    transition:.20s;
+
+}
+
+.dashboard-item:hover{
+
+    background:#0f172a;
+
+}
+
+.dashboard-item .descricao{
+
+    color:#ffffff;
+
+    font-weight:600;
+
+}
+
+.dashboard-item .categoria{
+
+    color:#94a3b8;
+
+    font-size:13px;
+
+}
+
+.dashboard-item .valor{
+
+    font-size:20px;
+
+    font-weight:700;
+
+}
+
+.dashboard-item.entrada .valor{
+
+    color:#2e7d32;
+
+}
+
+.dashboard-item.saida .valor{
+
+    color:#c62828;
+
+}
+
+/* MOBILE */
+
+@media(max-width:768px){
+
+    .dashboard-header{
+
+        margin:18px 16px;
+
+    }
+
+    .dashboard-titulo h2{
+
+        font-size:24px;
+
+    }
+
+    .dashboard-cards{
+
+        grid-template-columns:1fr;
+
+        margin:16px;
+
+    }
+
+    .dashboard-ultimos{
+
+        margin:16px;
+
+    }
+
+}

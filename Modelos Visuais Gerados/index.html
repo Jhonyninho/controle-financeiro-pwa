@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Modelos visuais</title>
+<link rel="stylesheet" href="base.css" />
+<style>
+  .principal { margin: 0 auto; }
+  h1 { font-size: 26px; margin: 10px 0 4px; } .principal > p { color: var(--texto-2); max-width: 70ch; }
+</style>
+</head>
+<body>
+<main class="principal">
+  <h1>Modelos visuais do Controle Financeiro</h1>
+  <p>Protótipos estáticos com dados fictícios, inspirados no print de exemplo. Abra cada um, compare e diga qual tela inicial prefere (ou misture partes). Todos usam a mesma casca: trilho de ícones coloridos à esquerda, saudação com relógio, busca e ações no topo.</p>
+
+  <div class="secao">TELA INICIAL — ESCOLHA UMA</div>
+  <div class="modulos">
+    <a class="modulo" href="modelo-A-inicio-modulos.html" style="--cor: var(--destaque)"><header><span class="tile laranja" data-i="inicio"></span><h3>A · Módulos</h3></header>
+      <p>Igual ao exemplo: indicadores no topo e cards grandes por área (Dia a dia, Análise, Configurações), cada um com um número vivo e "Abrir".</p>
+      <footer>mais navegação, menos gráfico<span class="abrir">Abrir ›</span></footer></a>
+    <a class="modulo" href="modelo-B-inicio-painel.html" style="--cor: var(--violeta)"><header><span class="tile violeta" data-i="grafico"></span><h3>B · Painel analítico</h3></header>
+      <p>Indicadores + rosca "Para onde foi o dinheiro" clicável, barras de 6 meses, vencimentos, contas e alertas. Navegação fica só no trilho.</p>
+      <footer>mais informação na primeira tela<span class="abrir">Abrir ›</span></footer></a>
+    <a class="modulo" href="modelo-C-inicio-hibrido.html" style="--cor: var(--verde)"><header><span class="tile verde" data-i="cartao"></span><h3>C · Híbrido</h3></header>
+      <p>Patrimônio em destaque, cartões das contas no estilo de cada banco, atalhos compactos e as listas de maiores gastos e vencimentos.</p>
+      <footer>meio-termo entre A e B<span class="abrir">Abrir ›</span></footer></a>
+  </div>
+
+  <div class="secao">TELAS INTERNAS (MESMA CASCA)</div>
+  <div class="modulos">
+    <a class="modulo" href="tela-lancamentos.html" style="--cor: var(--azul)"><header><span class="tile azul" data-i="lista"></span><h3>Lançamentos + detalhe de categoria</h3></header>
+      <p>Filtros em uma linha, lista agrupada por dia e painel lateral de detalhe ao tocar numa categoria.</p><footer><span class="abrir">Abrir ›</span></footer></a>
+    <a class="modulo" href="tela-configuracoes.html" style="--cor: #94a3b8"><header><span class="tile ciano" data-i="engrenagem"></span><h3>Configurações</h3></header>
+      <p>Perfil com foto, cards de Contas e Categorias, cor de destaque e IA.</p><footer><span class="abrir">Abrir ›</span></footer></a>
+  </div>
+</main>
+<script src="casca.js"></script>
+</body>
+</html>

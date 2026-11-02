@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <!--CSP-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#0a0e27" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Controle financeiro pessoal" />
+    <!-- instalação: Android/Chrome usa o manifest; iPhone/iPad usa as metas apple-* -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Financeiro" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>Controle Financeiro</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  </head>
+  <body>
+    <!-- Ícones (traço, 24x24) -->
+    <svg xmlns="http://www.w3.org/2000/svg" class="sprite" aria-hidden="true">
+      <symbol id="i-resumo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" /><path d="M12 3.5v8.5l6 6" /></symbol>
+      <symbol id="i-lista" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12" /><circle cx="4" cy="6" r="1" /><circle cx="4" cy="12" r="1" /><circle cx="4" cy="18" r="1" /></symbol>
+      <symbol id="i-agenda" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3" /><path d="M8 3v4M16 3v4M3.5 10h17M8 14h2M14 14h2M8 17h2" /></symbol>
+      <symbol id="i-importar" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5" /><path d="M4 15v3a2.5 2.5 0 0 0 2.5 2.5h11A2.5 2.5 0 0 0 20 18v-3" /></symbol>
+      <symbol id="i-grafico" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></symbol>
+      <symbol id="i-carteira" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 10h18M16 15h2" /><path d="M6 6l9-3 1.5 3" /></symbol>
+      <symbol id="i-etiqueta" viewBox="0 0 24 24"><path d="M3.5 12.5V4.5a1 1 0 0 1 1-1h8l8 8-9 9z" /><circle cx="8" cy="8" r="1.5" /></symbol>
+      <symbol id="i-sair" viewBox="0 0 24 24"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" /></symbol>
+      <symbol id="i-alvo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><path d="M12 12l6-6M15 6h3v3" /></symbol>
+      <symbol id="i-engrenagem" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" /><circle cx="12" cy="12" r="6.5" /></symbol>
+      <symbol id="i-recolher" viewBox="0 0 24 24"><path d="M4 5v14M15 7l-5 5 5 5M10 12h10" /></symbol>
+      <symbol id="i-ia" viewBox="0 0 24 24"><path d="M12 3.5l1.8 4.7 4.7 1.8-4.7 1.8L12 16.5l-1.8-4.7L5.5 10l4.7-1.8z" /><path d="M18.5 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" /></symbol>
+      <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3" /><circle cx="12" cy="12" r="1.3" /><circle cx="19" cy="12" r="1.3" /></symbol>
+    </svg>
+
+    <!-- Login / convite / redefinição de senha -->
+    <div id="tela-auth" class="auth" hidden></div>
+
+    <!-- Aplicação -->
+    <div id="app" class="app" hidden>
+      <nav id="menu" class="trilho" aria-label="Menu principal">
+        <div class="marca"><span class="marca-orbe" aria-hidden="true"></span><span class="marca-nome">Controle<br />Financeiro</span>
+          <button id="btn-recolher" class="btn-recolher" aria-label="Recolher menu" title="Recolher menu"><svg><use href="#i-recolher" /></svg></button></div>
+        <a href="#/resumo" data-rota="resumo" title="Resumo"><svg><use href="#i-resumo" /></svg><span>Resumo</span></a>
+        <a href="#/lancamentos" data-rota="lancamentos" title="Lançamentos"><svg><use href="#i-lista" /></svg><span>Lançamentos</span></a>
+        <a href="#/futuros" data-rota="futuros" title="Lançamentos futuros"><svg><use href="#i-agenda" /></svg><span>Futuros</span></a>
+        <a href="#/importar" data-rota="importar" title="Importar extrato"><svg><use href="#i-importar" /></svg><span>Importar extrato</span></a>
+        <a href="#/relatorios" data-rota="relatorios" title="Relatórios"><svg><use href="#i-grafico" /></svg><span>Relatórios</span></a>
+        <a href="#/analise" data-rota="analise" title="Análise e metas"><svg><use href="#i-alvo" /></svg><span>Análise e metas</span></a>
+        <a href="#/configuracoes" data-rota="configuracoes" title="Configurações"><svg><use href="#i-engrenagem" /></svg><span>Configurações</span></a>
+        <div class="trilho-rodape">
+          <span class="usuario-linha"><img id="topo-avatar" class="avatar-mini" alt="" hidden /><span id="topo-usuario" class="usuario"></span></span>
+          <button id="btn-sair" class="btn-sair" title="Sair"><svg><use href="#i-sair" /></svg><span>Sair</span></button>
+        </div>
+      </nav>
+      <div id="menu-fundo" class="menu-fundo" hidden></div>
+
+      <header class="topo">
+        <h1 id="titulo-tela" class="topo-titulo"></h1>
+        <div class="seletor-mes" id="seletor-mes">
+          <button class="btn-icone" data-mes="-1" aria-label="Mês anterior">‹</button>
+          <span id="mes-atual" class="mes-atual"></span>
+          <button class="btn-icone" data-mes="1" aria-label="Próximo mês">›</button>
+        </div>
+      </header>
+
+      <main id="conteudo" class="conteudo" tabindex="-1"></main>
+
+      <!-- Barra inferior (celular) -->
+      <nav class="doca" aria-label="Atalhos">
+        <a href="#/resumo" data-rota="resumo" title="Resumo"><svg><use href="#i-resumo" /></svg><span>Resumo</span></a>
+        <a href="#/lancamentos" data-rota="lancamentos"><svg><use href="#i-lista" /></svg><span>Lançamentos</span></a>
+        <button id="btn-novo" class="doca-novo" aria-label="Novo lançamento"><svg><use href="#i-mais" /></svg></button>
+        <a href="#/importar" data-rota="importar"><svg><use href="#i-importar" /></svg><span>Importar</span></a>
+        <button id="btn-menu" aria-label="Mais opções" aria-controls="menu" aria-expanded="false"><svg><use href="#i-menu" /></svg><span>Mais</span></button>
+      </nav>
+    </div>
+
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+
+    <noscript>Este app precisa de JavaScript habilitado.</noscript>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

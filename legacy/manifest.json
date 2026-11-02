@@ -1,0 +1,23 @@
+{
+  "id": "/controlefinanceiro-pwa/",
+  "name": "Controle Financeiro",
+  "short_name": "Financeiro",
+  "start_url": "/controlefinanceiro-pwa/",
+  "scope": "/controlefinanceiro-pwa/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/controlefinanceiro-pwa/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/controlefinanceiro-pwa/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

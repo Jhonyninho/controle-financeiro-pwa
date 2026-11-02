@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Controle Financeiro Pessoal</title>
+
+  <!-- PWA -->
+  <meta name="theme-color" content="#1e293b" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Estilo -->
+  <link rel="stylesheet" href="style.css" />
+
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+
+  <!-- =====================================================
+       TELA DE LOGIN (NOVO)
+  ====================================================== -->
+  <div id="login-screen" class="login-container">
+
+    <div class="login-box">
+      <h1>💰 Controle Financeiro</h1>
+      <p class="subtitle">Acesso ao sistema</p>
+
+      <form id="loginForm">
+        <label>Usuário</label>
+        <input type="text" id="login" required />
+
+        <label>Senha</label>
+        <input type="password" id="senha" required />
+
+        <button type="submit" class="btn-primario">Entrar</button>
+
+        <p id="loginError" class="login-error hidden"></p>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- =====================================================
+       APLICAÇÃO (ORIGINAL – AGORA ENVOLVIDA)
+  ====================================================== -->
+  <div id="app" class="hidden">
+  <!-- =====================================================
+    HEADER + APP BAR (MOBILE FIRST)
+    ===================================================== -->
+    <header class="app-header">
+
+      <div class="app-bar">
+
+        <!-- Botão menu (mobile) -->
+        <button id="btnMenu" class="btn-menu" aria-label="Abrir menu">
+          ☰
+        </button>
+
+        <!-- Título -->
+        <div class="app-title">
+          <h1>💰 Controle Financeiro</h1>
+          <span id="periodoAtual"></span>
+        </div>
+
+      </div>
+
+    </header>
+
+    <!-- =====================================================
+    MENU LATERAL (DRAWER MOBILE)
+    ===================================================== -->
+    <div id="menuOverlay" class="menu-overlay hidden"></div>
+
+    <aside id="sideMenu" class="side-menu">
+
+      <nav class="side-menu-nav">
+
+        <button class="side-link active" data-tab="resumo">
+          ⏱ <span>Resumo</span>
+        </button>
+
+        <button class="side-link" data-tab="nova-despesa">
+         ➕ <span>Novo Lançamento</span>
+        </button>
+
+
+        <button class="side-link" data-tab="lancamentos">
+          📊 <span>Demonstrativo Financeiro</span>
+        </button>
+
+        <button class="side-link" data-tab="futuros">
+          🧾 <span>Lançamentos Futuros</span>
+        </button>
+
+        <button class="side-link" data-tab="contas">
+          💳 <span>Contas</span>
+        </button>
+
+        <button class="side-link" data-tab="resumo-geral">
+          📊 <span>Resumo Geral</span>
+        </button>
+
+        <button class="side-link" data-tab="inteligencia">
+          📊 <span>Inteligência Financeira</span>
+        </button>
+
+        <button class="side-link" data-tab="historico">
+          📜 <span>Histórico</span>
+        </button>
+
+      </nav>
+
+      <div class="logout-container">
+        <button id="btnLogout" class="btn-logout">
+          <span class="icon">⏻</span>
+          <span>Sair</span>
+        </button>
+      </div>
+
+    </aside>
+    
+    <!-- =====================================================
+     ABA: RESUMO
+    ===================================================== -->
+    <main id="tab-resumo" class="tab-content active">
+
+        <!-- CABEÇALHO -->
+        <section class="dashboard-header">
+
+            <div class="dashboard-titulo">
+                <h2>Resumo por Conta</h2>
+                <span id="dashboardPeriodo"></span>
+            </div>
+
+        </section>
+
+        <!-- RESUMO POR PAGAMENTO (estrutura atual preservada) -->
+        <section class="resumo-pagamentos">
+
+            <div class="coluna">
+
+                <h3>Débito</h3>
+
+                <div id="cards-debito" class="cards-coluna"></div>
+
+            </div>
+
+            <div class="coluna">
+
+                <h3>Crédito</h3>
+
+                <div id="cards-credito" class="cards-coluna"></div>
+
+            </div>
+
+            <div class="coluna">
+
+                <h3>Pix / TED (Entradas)</h3>
+
+                <div id="cards-pix-entrada" class="cards-coluna"></div>
+
+            </div>
+
+            <div class="coluna">
+
+                <h3>Pix / TED (Saídas)</h3>
+
+                <div id="cards-pix-saida" class="cards-coluna"></div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- =====================================================
+     ABA: CONTAS
+    ====================================================== -->
+    <main id="tab-contas" class="tab-content">
+
+      <section class="tabela-box">
+        <h2>🏦 Manutenção de Contas</h2>
+
+        <div class="tabela-wrapper">
+          <table id="tabelaContas" class="tabela-analitica">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Ativo</th>
+                <th>Bandeira</th>
+                <th>Skin</th>
+                <th>Resumo</th>
+                <th>Ordem</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- =====================================================
+         ABA: RESUMO GERAL
+    ====================================================== -->
+    <main id="tab-resumo-geral" class="tab-content">
+
+        <section class="resumo-geral">
+
+            <div class="resumo-header">
+
+                <div>
+
+                    <h2>Resumo Geral</h2>
+
+                </div>
+
+            </div>
+
+            <div class="projecao-toolbar">
+
+                <button class="btn-projecao ativo"
+                    data-modo="todos"
+                    onclick="alterarModoProjecao('todos')">
+                    Todos
+                </button>
+
+                <button class="btn-projecao"
+                    data-modo="mes1"
+                    onclick="alterarModoProjecao('mes1')">
+                    Próximo mês
+                </button>
+
+                <button class="btn-projecao"
+                    data-modo="mes3"
+                    onclick="alterarModoProjecao('mes3')">
+                    3 meses
+                </button>
+
+                <button class="btn-projecao"
+                    data-modo="mes6"
+                    onclick="alterarModoProjecao('mes6')">
+                    6 meses
+                </button>
+
+                <button class="btn-projecao"
+                    data-modo="personalizado"
+                    onclick="alterarModoProjecao('personalizado')">
+                    Personalizado
+                </button>
+
+            </div>
+
+            <div id="painelMesesProjecao" class="hidden">
+
+                <div class="meses-grid">
+
+                    <label><input class="chk-projecao-mes" type="checkbox" value="0"> Janeiro</label>
+                    <label><input class="chk-projecao-mes" type="checkbox" value="1"> Fevereiro</label>
+                    <label><input class="chk-projecao-mes" type="checkbox" value="2"> Março</label>
+                    <label><input class="chk-projecao-mes" type="checkbox" value="3"> Abril</label>
+                    <label><input class="chk-projecao-mes" type="checkbox" value="4"> Maio</label>
+                    <label><input class="chk-projecao-mes" type="checkbox" value="5"> Junho</label>
+                    <label><input class="chk-projecao-mes" type="checkbox" value="6"> Julho</label>
+                    <label><input class="chk-projecao-mes" type="checkbox" value="7"> Agosto</label>
+                    <label><input class="chk-projecao-mes" type="checkbox" value="8"> Setembro</label>
+                    <label><input class="chk-projecao-mes" type="checkbox" value="9"> Outubro</label>
+                    <label><input class="chk-projecao-mes" type="checkbox" value="10"> Novembro</label>
+                    <label><input class="chk-projecao-mes" type="checkbox" value="11"> Dezembro</label>
+
+                </div>
+
+            </div>
+
+            <div id="cards-resumo-geral" class="cards-resumo-geral"></div>
+
+            <section class="resumo-ultimos">
+
+                <div class="resumo-ultimos-header">
+
+                    <h3>Últimos Lançamentos</h3>
+
+                    <span>Últimas movimentações registradas</span>
+
+                </div>
+
+                <div
+                    id="resumoUltimos"
+                    class="resumo-ultimos-lista">
+                </div>
+
+            </section>
+
+    </main>
+
+    <main id="tab-inteligencia" class="tab-content">
+
+        <section class="inteligencia-financeira">
+
+            <div class="inteligencia-header">
+
+                <h2>Inteligência Financeira</h2>
+
+                <div class="if-filtros">
+
+                    <select id="ifAno">
+
+                    </select>
+
+                    <select id="ifMes">
+
+                        <option value="">Todos os meses</option>
+
+                        <option value="0">Janeiro</option>
+                        <option value="1">Fevereiro</option>
+                        <option value="2">Março</option>
+                        <option value="3">Abril</option>
+                        <option value="4">Maio</option>
+                        <option value="5">Junho</option>
+                        <option value="6">Julho</option>
+                        <option value="7">Agosto</option>
+                        <option value="8">Setembro</option>
+                        <option value="9">Outubro</option>
+                        <option value="10">Novembro</option>
+                        <option value="11">Dezembro</option>
+
+                    </select>
+
+                    <button id="btnAtualizarIF">
+
+                        Atualizar
+
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div class="cards-inteligencia">
+
+                <div class="card-inteligencia">
+                    <span>Maior gasto</span>
+                    <strong id="ifMaiorGasto">--</strong>
+                </div>
+
+                <div class="card-inteligencia">
+                    <span>Menor gasto</span>
+                    <strong id="ifMenorGasto">--</strong>
+                </div>
+
+                <div class="card-inteligencia">
+                    <span>Categoria que mais consumiu</span>
+                    <strong id="ifCategoriaMaior">--</strong>
+                </div>
+
+                <div class="card-inteligencia">
+                    <span>Categoria que menos consumiu</span>
+                    <strong id="ifCategoriaMenor">--</strong>
+                </div>
+
+                <div class="card-inteligencia">
+                    <span>Total Pago</span>
+                    <strong id="ifTotalPago">R$ 0,00</strong>
+                </div>
+
+                <div class="card-inteligencia">
+                    <span>Total Recebido</span>
+                    <strong id="ifTotalRecebido">R$ 0,00</strong>
+                </div>
+
+                <div class="card-inteligencia">
+                    <span>Média diária de gastos</span>
+                    <strong id="ifMediaDiaria">R$ 0,00</strong>
+                </div>
+
+                <div class="card-inteligencia">
+                    <span>Percentual da renda comprometida</span>
+                    <strong id="ifComprometimento">0%</strong>
+                </div>
+
+                <div class="card-inteligencia">
+                    <span>Previsão para o fechamento do mês</span>
+                    <strong id="ifPrevisao">R$ 0,00</strong>
+                </div>
+
+                <div class="card-inteligencia destaque">
+
+                    <span>Resumo Inteligente</span>
+
+                    <p id="ifResumoIA">
+
+                        Aguardando análise...
+
+                    </p>
+
+                </div>
+
+                </div>
+
+                <section class="if-insights">
+
+                    <h3>Insights Financeiros</h3>
+
+                    <div id="ifInsights">
+
+                        <div class="if-vazio">
+
+                            A análise será exibida aqui.
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <section class="if-comparativo">
+
+                    <h3>Comparativo com o Mês Anterior</h3>
+
+                    <div id="ifComparativo">
+
+                        <div class="if-vazio">
+
+                            Nenhuma comparação disponível.
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <section class="if-distribuicao">
+
+                    <h3>💰 Como seu dinheiro foi gasto</h3>
+
+                    <div id="ifDistribuicaoCategorias">
+
+                        <div class="if-vazio">
+
+                            Nenhuma informação disponível.
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+                </section>
+
+                </main>
+
+    <!-- =====================================================
+         ABA: LANÇAMENTOS
+    ====================================================== -->
+    <main id="tab-lancamentos" class="tab-content">
+
+      <section class="tabela-box">
+
+        <h2>📊 Demonstrativo Financeiro (DRE)</h2>
+
+        <!-- FILTROS -->
+        <div class="dre-filtros">
+
+          <div>
+            <label>Ano</label>
+            <select id="dreAno"></select>
+          </div>
+
+          <div class="dre-dropdown" id="dreMesDropdown">
+
+            <button type="button" class="dre-dropdown-btn" id="dreMesBtn">
+              Meses selecionados
+            </button>
+
+            <div class="dre-dropdown-menu hidden" id="dreMesMenu">
+              <!-- meses via JS -->
+            </div>
+
+          </div>
+
+          <div>
+            <label>Tipo</label>
+            <select id="dreTipo">
+              <option value="TODOS">Entradas + Saídas</option>
+              <option value="ENTRADA">Entradas</option>
+              <option value="SAIDA">Saídas</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Visão</label>
+            <select id="dreVisao">
+              <option value="categoria">Categoria × Mês</option>
+              <option value="conta">Conta × Mês</option>
+              <option value="tipo">Tipo × Mês</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Análise</label>
+            <select id="dreAnalise">
+              <option value="horizontal">Horizontal</option>
+              <option value="vertical">Vertical (%)</option>
+            </select>
+          </div>
+
+        </div>
+
+
+        <!-- TABELA -->
+        <div class="tabela-wrapper">
+          <table id="tabelaDRE" class="tabela-analitica">
+            <thead></thead>
+            <tbody></tbody>
+            <tfoot></tfoot>
+          </table>
+        </div>
+
+      </section>
+
+    </main>
+
+
+    <!-- =====================================================
+     ABA: LANÇAMENTOS FUTUROS
+    ====================================================== -->
+    <main id="tab-futuros" class="tab-content">
+
+      <section class="tabela-box">
+
+        <h2>⏳ Lançamentos Futuros</h2>
+
+        <!-- FILTROS + AÇÕES -->
+        <div class="filtros-futuros-wrapper">
+
+          <!-- FILTROS -->
+          <div class="filtros-futuros">
+
+            <div>
+              <label>Mês</label>
+              <select id="filtroMesFuturo">
+                <option value="">Todos</option>
+                <option value="0">Jan</option>
+                <option value="1">Fev</option>
+                <option value="2">Mar</option>
+                <option value="3">Abr</option>
+                <option value="4">Mai</option>
+                <option value="5">Jun</option>
+                <option value="6">Jul</option>
+                <option value="7">Ago</option>
+                <option value="8">Set</option>
+                <option value="9">Out</option>
+                <option value="10">Nov</option>
+                <option value="11">Dez</option>
+              </select>
+            </div>
+
+            <div>
+              <label>Ano</label>
+              <select id="filtroAnoFuturo"></select>
+            </div>
+
+            <div>
+              <label>Conta</label>
+              <select id="filtroContaFuturo">
+                <option value="">Todas</option>
+              </select>
+            </div>
+
+            <button id="btnLimparFiltrosFuturo">Limpar</button>
+          </div>
+
+          <!-- AÇÃO EM LOTE -->
+          <div class="acoes-futuros">
+            <button
+              id="btnPagarTudo"
+              class="btn-consolidar-futuro"
+              disabled
+              title="Use os filtros para habilitar"
+            >
+              💳 Consolidar
+            </button>
+          </div>
+
+        </div>
+
+        <!-- TABELA -->
+        <div class="tabela-wrapper">
+          <table id="tabelaLancamentosFuturos" class="tabela-analitica">
+
+              <thead>
+                  <tr>
+                      <th>Vencimento</th>
+                      <th>Categoria</th>
+                      <th>Conta</th>
+                      <th>Valor</th>
+                      <th>Ação</th>
+                  </tr>
+              </thead>
+
+              <tbody></tbody>
+
+              <tfoot></tfoot>
+
+          </table>
+          
+        </div>
+
+      </section>
+
+    </main>
+
+
+    <!-- =====================================================
+         ABA: NOVA DESPESA
+    ====================================================== -->
+    <main id="tab-nova-despesa" class="tab-content">
+
+      <section class="form-box">
+        <h2>Registrar Lançamento</h2>
+
+        <form id="formLancamento">
+
+          <label>Tipo</label>
+          <select id="tipo" required>
+            <option value="SAIDA">Despesa</option>
+            <option value="ENTRADA">Entrada</option>
+          </select>
+
+          <label>Categoria</label>
+          <select id="categoria" required></select>
+
+          <label>Subcategoria</label>
+          <select id="subcategoria" required></select>
+
+          <label>Conta (Banco)</label>
+          <select id="conta" required></select>
+
+          <label>Forma de Pagamento/Recebimento</label>
+          <select id="pagamento" required></select>
+
+          <label>Valor</label>
+          <input
+            type="text"
+            id="valor"
+            inputmode="decimal"
+            placeholder="Ex: 100,50"
+            required
+          />
+
+          <label>Data</label>
+          <input type="date" id="data" required />
+
+          <label class="check">
+            <input type="checkbox" id="fixo" />
+            Gasto fixo mensal
+          </label>
+
+          <label class="check">
+            <input type="checkbox" id="parcelado" />
+            Compra parcelada
+          </label>
+
+          <div id="campoParcelamento" class="hidden">
+
+            <label>Nº de parcelas</label>
+            <input
+              type="number"
+              id="qtdParcelas"
+              min="2"
+              max="48"
+              placeholder="Ex: 4"
+            />
+
+            <label>Valor de cada parcela</label>
+            <input
+              type="text"
+              id="valorParcela"
+              inputmode="decimal"
+              placeholder="Ex: 250,00"
+            />
+
+          </div>
+
+
+          <label>Descrição</label>
+          <input type="text" id="descricao" />
+
+          <div class="campo-checkbox">
+            <label>
+              <input type="checkbox" id="chk-futuro">
+              Lançamento futuro
+            </label>
+          </div>
+
+          <button type="submit" class="btn-primario">Salvar</button>
+
+        </form>
+      </section>
+
+    </main>
+
+  <!-- =====================================================
+     ABA: HISTÓRICO
+===================================================== -->
+<main id="tab-historico" class="tab-content">
+
+  <section class="tabela-box">
+
+    <h2>Histórico de Lançamentos</h2>
+
+    <div class="tabela-wrapper">
+      <table id="tabelaHistorico" class="tabela-analitica">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Tipo</th>
+            <th>Categoria</th>
+            <th>Subcategoria</th>
+            <th>Conta</th>
+            <th>Pagamento</th>
+            <th>Valor</th>
+            <th>Descrição</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+
+        <tbody></tbody>
+
+      </table>
+    </div>
+
+  </section>
+
+</main>
+
+  <!-- JS -->
+  <script src="app.js"></script>
+
+  <!-- REGISTRO DO SERVICE WORKER -->
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register(
+        '/controlefinanceiro-pwa/service-worker.js',
+        { scope: '/controlefinanceiro-pwa/' }
+      );
+    });
+  }
+  </script>
+
+</body>
+</html>

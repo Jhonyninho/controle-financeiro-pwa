@@ -1,0 +1,67 @@
+/* =====================================================================
+   COMPONENTES: seletor com busca, seleção de lançamentos, relatórios
+   ===================================================================== */
+
+/* ---------- seletor de categoria com busca ---------- */
+.combo { position: relative; min-width: 0; }
+.combo-botao {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 44px;
+  padding: 6px 12px 6px 8px; border-radius: var(--r-campo); cursor: pointer; text-align: left;
+  font: 400 0.92rem var(--fonte); color: var(--texto);
+  background: color-mix(in srgb, var(--abismo) 60%, transparent); border: 1px solid var(--linha); transition: border-color 0.15s, box-shadow 0.15s;
+}
+.combo-botao:hover { border-color: var(--linha-forte); }
+.combo-botao[aria-expanded='true'] { border-color: var(--ciano); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ciano) 18%, transparent); }
+.combo-botao.pendente { border-color: var(--ambar); background: rgba(255, 200, 97, 0.06); }
+.combo-botao .chip { min-width: 0; }
+.combo-vazio { padding-left: 6px; color: var(--texto-2); }
+.combo-botao.pendente .combo-vazio { color: var(--ambar); }
+.combo-seta { color: var(--texto-3); font-size: 0.8rem; flex-shrink: 0; }
+.tabela-previa .combo { min-width: 220px; }
+.tabela-previa .combo-botao { min-height: 40px; }
+
+.combo-painel {
+  position: fixed; z-index: 200; display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 16px; background: color-mix(in srgb, var(--abismo-2) 98%, transparent); border: 1px solid var(--linha-forte);
+  box-shadow: 0 24px 60px -16px rgba(0, 0, 0, 0.85), 0 0 0 1px color-mix(in srgb, var(--ciano) 8%, transparent);
+  animation: surgir 0.14s ease-out;
+}
+.combo-busca { border: 0; border-bottom: 1px solid var(--linha); border-radius: 0; background: transparent; min-height: 46px; padding: 12px 16px; }
+.combo-busca:focus { box-shadow: none; border-bottom-color: var(--ciano); }
+.combo-lista { list-style: none; margin: 0; padding: 6px; overflow-y: auto; }
+.combo-lista [role='option'] { display: flex; align-items: center; padding: 7px 8px; border-radius: 10px; cursor: pointer; }
+.combo-lista [role='option']:hover, .combo-lista [role='option'].ativa { background: var(--vidro-forte); }
+.combo-lista [role='option'][aria-selected='true'] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ciano) 45%, transparent); }
+.combo-nada { padding: 14px; color: var(--texto-2); font-size: 0.88rem; }
+.campo-combo { display: flex; flex-direction: column; gap: 6px; }
+.campo-combo .rotulo { font-size: 0.82rem; font-weight: 500; color: var(--texto-2); }
+
+/* ---------- relatórios ---------- */
+.periodo { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.periodo > label { min-width: 160px; }
+.periodo > .opcoes-pilula { flex: 1 1 100%; }
+.periodo .opcoes-pilula span { min-height: 36px; }
+.saldo-contas { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); margin-bottom: 18px; }
+.saldo-conta { padding: 16px 18px; border-radius: 18px; background: color-mix(in srgb, var(--abismo) 50%, transparent); border: 1px solid var(--linha); border-top: 2px solid var(--banco, var(--ciano)); }
+.saldo-conta span { font-size: 0.82rem; color: var(--texto-2); }
+.saldo-conta strong { display: block; margin: 4px 0 2px; font-size: 1.45rem; font-weight: 300; letter-spacing: -0.03em; }
+.saldo-conta small { display: block; }
+.saldo-conta.sem-inicial small { color: var(--ambar); }
+.tabela .linha-total td { font-weight: 600; border-top: 1px solid var(--linha-forte); }
+.tabela .subtitulo-conta td { padding-top: 18px; font-weight: 600; color: var(--texto); border-bottom-color: var(--linha-forte); }
+.par-transf { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+.par-transf .seta { color: var(--ciano); }
+.legenda { margin-top: 12px; font-size: 0.82rem; color: var(--texto-3); }
+
+.titulo-painel { font-size: 1.15rem; margin-bottom: 16px; }
+.titulo-guia { font-size: 1rem; margin: 26px 0 12px; color: var(--texto-2); }
+.guias-painel .kpis { margin-bottom: 4px; }
+.guias-painel .faixa-alerta, .guias-painel .faixa-info { margin-top: 16px; }
+.tabela td.seta { color: var(--ciano); width: 30px; text-align: center; }
+
+/* ---------- barra de período (Resumo e Lançamentos) ---------- */
+.periodo-barra { align-items: center; }
+.periodo-barra > .opcoes-pilula { flex: 0 1 auto; }
+.periodo-datas { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.periodo-datas label { min-width: 150px; }
+.periodo-datas[hidden] { display: none !important; }

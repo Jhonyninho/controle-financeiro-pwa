@@ -1,0 +1,63 @@
+# Publica o app no GitHub Pages a cada push na branch main.
+#
+# Antes do primeiro deploy, no GitHub:
+#   Settings > Secrets and variables > Actions > New repository secret
+#     VITE_SUPABASE_URL  = https://SEU-PROJETO.supabase.co
+#     VITE_SUPABASE_KEY  = sb_publishable_...   (SOMENTE a chave pública)
+#   Settings > Pages > Build and deployment > Source: GitHub Actions
+#
+# A chave pública acaba visível no JavaScript publicado (é o esperado: os dados
+# são protegidos pelo RLS). NUNCA cadastre a chave secret/service_role.
+
+name: Publicar no GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_KEY }}
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+      - name: Conferir que nenhuma chave secreta foi parar no build
+        run: |
+          if grep -rqE "sb_secret_[A-Za-z0-9_-]{16,}" dist; then
+            echo "::error::Chave secreta do Supabase encontrada no build. Use só a chave publishable."
+            exit 1
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

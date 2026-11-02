@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tela interna · Lançamentos</title>
+<link rel="stylesheet" href="base.css" />
+<style>
+  .titulo { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .titulo h1 { margin: 0; font-size: 22px; } .titulo p { margin: 2px 0 0; color: var(--texto-2); font-size: 13px; }
+  .barra-filtros { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0 14px; }
+  .campo { background: #101a30; border: 1px solid var(--borda-forte); border-radius: 9px; padding: 9px 12px; color: var(--texto-2); font-size: 13px; display: inline-flex; gap: 8px; align-items: center; }
+  .resumo-linha { display: flex; gap: 24px; font-size: 13px; color: var(--texto-2); margin-bottom: 12px; } .resumo-linha b { color: var(--texto); }
+  .dia { color: var(--texto-3); font-size: 12px; font-weight: 700; background: #0c1426 !important; }
+  .acoes-l { color: var(--texto-3); width: 40px; }
+  .gaveta { position: fixed; top: 0; right: 0; width: 400px; height: 100vh; background: #0d1528; border-left: 1px solid var(--borda-forte); padding: 22px; box-shadow: -20px 0 50px rgba(0,0,0,.45); overflow: auto; }
+  .gaveta h2 { margin: 0; font-size: 18px; } .gaveta .sub { color: var(--texto-3); font-size: 12px; }
+  .gaveta .grande { font-size: 28px; font-weight: 800; margin: 12px 0 18px; }
+  @media (max-width: 1200px) { .gaveta { display: none; } }
+</style>
+</head>
+<body data-ativo="lista">
+<div class="app">
+  <nav class="trilho"></nav>
+  <main class="principal" style="padding-right:430px">
+    <div class="titulo">
+      <span class="tile azul" data-i="lista"></span>
+      <div><h1>Lançamentos</h1><p>Início › Lançamentos</p></div>
+      <div class="acoes-topo"><a class="btn" data-i="importar">Importar extrato</a><a class="btn btn-primario" data-i="mais">Novo lançamento</a></div>
+    </div>
+
+    <div class="barra-filtros">
+      <span class="campo" data-i="calendario">De 01/11/2026 &nbsp;até&nbsp; 30/11/2026</span>
+      <span class="campo" data-i="banco">Todas as contas ▾</span>
+      <span class="campo" data-i="etiqueta">Todas as categorias ▾</span>
+      <span class="campo" data-i="filtro">Entradas e saídas ▾</span>
+      <span class="campo" data-i="busca" style="flex:1;min-width:200px">Buscar descrição…</span>
+    </div>
+    <div class="resumo-linha"><span>142 lançamentos</span><span>Entradas <b class="pos">R$ 6.200,00</b></span><span>Saídas <b class="neg">R$ 3.912,40</b></span><span>Saldo <b>R$ 2.287,60</b></span></div>
+
+    <section class="painel" style="padding:0;overflow:hidden">
+      <table class="tabela">
+        <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Conta</th><th>Pagamento</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+        <tbody>
+          <tr><td colspan="7" class="dia">HOJE, 01/11</td></tr>
+          <tr><td>01/11</td><td>Supermercado Bom Preço</td><td><span class="chip-cat" style="background:#1f97c422;color:#7cc8e8">🛒 Mercado</span></td><td>Nubank</td><td>Crédito</td><td class="num neg">− R$ 214,37</td><td class="acoes-l" data-i="editar"></td></tr>
+          <tr><td>01/11</td><td>Salário</td><td><span class="chip-cat" style="background:#16a34a22;color:#86efac">💼 Salário</span></td><td>Banco do Brasil</td><td>TED</td><td class="num pos">+ R$ 6.200,00</td><td class="acoes-l" data-i="editar"></td></tr>
+          <tr><td colspan="7" class="dia">31/10</td></tr>
+          <tr><td>31/10</td><td>Restaurante Sabor Caseiro</td><td><span class="chip-cat" style="background:#b9862022;color:#e6c06b">🍽️ Restaurantes</span></td><td>Inter</td><td>Débito</td><td class="num neg">− R$ 68,90</td><td class="acoes-l" data-i="editar"></td></tr>
+          <tr><td>31/10</td><td>Uber *Trip</td><td><span class="chip-cat" style="background:#169e7522;color:#6ee7b7">🚗 Transporte</span></td><td>Nubank</td><td>Crédito</td><td class="num neg">− R$ 23,40</td><td class="acoes-l" data-i="editar"></td></tr>
+          <tr><td>31/10</td><td>Pix para Maria (aluguel garagem)</td><td><span class="chip-cat" style="background:#8b7bff22;color:#c4b5fd">🏠 Moradia</span></td><td>Banco do Brasil</td><td>Pix</td><td class="num neg">− R$ 150,00</td><td class="acoes-l" data-i="editar"></td></tr>
+          <tr><td colspan="7" class="dia">30/10</td></tr>
+          <tr><td>30/10</td><td>Farmácia São João</td><td><span class="chip-cat" style="background:#4f7ef522;color:#a5b4fc">💊 Saúde</span></td><td>Inter</td><td>Débito</td><td class="num neg">− R$ 47,80</td><td class="acoes-l" data-i="editar"></td></tr>
+          <tr><td>30/10</td><td>Netflix</td><td><span class="chip-cat" style="background:#e0559f22;color:#f9a8d4">📺 Assinaturas</span></td><td>Nubank</td><td>Crédito</td><td class="num neg">− R$ 55,90</td><td class="acoes-l" data-i="editar"></td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</div>
+
+<aside class="gaveta">
+  <p class="sub">Detalhe da categoria · novembro</p>
+  <h2>🛒 Mercado</h2>
+  <div class="grande">R$ 939,12</div>
+  <div class="cat-linha"><span class="bolinha" style="background:#1f97c422;color:#1f97c4" data-i="mercado"></span><div><div class="nome">Supermercado</div><div class="barra"><i style="width:100%;background:#1f97c4"></i></div></div><div class="valor">R$ 712<small>76%</small></div></div>
+  <div class="cat-linha"><span class="bolinha" style="background:#1f97c422;color:#1f97c4" data-i="mercado"></span><div><div class="nome">Padaria</div><div class="barra"><i style="width:22%;background:#1f97c4"></i></div></div><div class="valor">R$ 156<small>17%</small></div></div>
+  <div class="cat-linha"><span class="bolinha" style="background:#1f97c422;color:#1f97c4" data-i="mercado"></span><div><div class="nome">Hortifrúti</div><div class="barra"><i style="width:10%;background:#1f97c4"></i></div></div><div class="valor">R$ 71<small>7%</small></div></div>
+  <div class="secao">LANÇAMENTOS</div>
+  <div class="venc"><div class="data"><b>01</b>nov</div><div class="desc">Supermercado Bom Preço<small>Nubank · Crédito</small></div><span class="v neg">R$ 214,37</span></div>
+  <div class="venc"><div class="data"><b>28</b>out</div><div class="desc">Padaria Pão Quente<small>Inter · Débito</small></div><span class="v neg">R$ 18,50</span></div>
+  <div class="venc"><div class="data"><b>25</b>out</div><div class="desc">Atacadão<small>Banco do Brasil · Pix</small></div><span class="v neg">R$ 402,11</span></div>
+  <p class="sub" style="margin-top:14px">No app, este painel abre ao tocar numa categoria (Resumo, Relatórios, Análise).</p>
+</aside>
+<div class="nota-modelo">Tela interna · protótipo. <a href="index.html">Ver todos os modelos</a></div>
+<script src="casca.js"></script>
+</body>
+</html>
