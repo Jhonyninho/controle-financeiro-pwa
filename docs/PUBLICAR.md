@@ -60,7 +60,6 @@ As chaves ficam só no aparelho em que forem cadastradas (celular e PC precisam 
 
 **Voz (Configurações → Assistente e voz):**
 - **Voz do navegador:** grátis e instantânea, sem efeitos.
-- **Microsoft Azure (melhor e mais duradoura):** portal.azure.com → criar recurso *Speech* no plano **Free F0**, região Brazil South → copiar a Chave 1. 500 mil caracteres por mês grátis. O cadastro do Azure pede um cartão só para verificação; o plano F0 não cobra.
-- **ElevenLabs:** elevenlabs.io → Developers → API Keys. Sem cartão, cota pequena (~10 mil créditos/mês). Dá para criar uma voz original no *Voice Design* e colar o Voice ID.
+- **Minha voz (servidor próprio):** a sua voz gravada, gerada no seu Google Colab com XTTS v2. Passo a passo e script em [VOZ-PROPRIA.md](VOZ-PROPRIA.md); no app, cole o endereço do ngrok mostrado pelo Colab.
 
 Toque em **Testar voz** para ouvir antes de salvar.

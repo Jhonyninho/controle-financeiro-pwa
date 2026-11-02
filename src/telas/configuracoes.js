@@ -12,7 +12,8 @@ import { CORES_HUD, FONTES, TONS_HUD, aplicarAparencia, corDoHud, lerAparencia, 
 import { avisosDoDia, campanhaDoDia } from '../lib/campanhas.js';
 import { hojeISO } from '../lib/meses.js';
 import {
-  MOTORES, NIVEIS_EFEITO, motorPronto, NOME_PADRAO, VOZES_AZURE, VOZES_ELEVEN, VOZES_GEMINI, configVoz, criarNarrador, nomeAssistenteValido, salvarConfigVoz, textoSaudacao, vozesDoNavegador,
+  MOTORES, NIVEIS_EFEITO, motorPronto, NOME_PADRAO, configVoz, criarNarrador, esquecerAudiosGuardados, nomeAssistenteValido, salvarConfigVoz,
+  textoSaudacao, urlServidorValida, vozesDoNavegador,
 } from '../servicos/voz.js';
 import {
   autenticadores, concluirCadastro, iniciarCadastro, removerAutenticadores, sairDeTodosOsAparelhos, trocarSenha,
@@ -124,7 +125,7 @@ function desenhar(el) {
           acao: 'voz', ico: 'ui-voz', titulo: voz.estilo === 'assistente' ? `Assistente ${voz.assistente}` : 'Assistente e voz',
           texto: voz.motor === 'navegador'
             ? 'Voz do navegador (grátis, sem efeitos)'
-            : `${MOTORES.find((m) => m.id === voz.motor)?.nome}, timbre ${NIVEIS_EFEITO.find((n) => n.id === voz.efeito)?.nome.toLowerCase() || ''}${motorPronto(voz) ? '' : ' (falta a chave)'}`,
+            : `Minha voz, timbre ${NIVEIS_EFEITO.find((n) => n.id === voz.efeito)?.nome.toLowerCase() || ''}${motorPronto(voz) ? '' : ' (falta o endereço do servidor)'}`,
           extra: html`<span class="selo ${voz.lerAuto ? 'selo-ok' : ''}">${voz.lerAuto ? 'lê sozinho' : 'ao tocar'}</span>`,
         })}
         ${cartaoAcao({
@@ -342,15 +343,10 @@ const textoTeste = (c) =>
     ? `${textoSaudacao(estado.perfil?.nome, { assistente: c.assistente, tratamento: c.tratamento })} ${TEXTO_TESTE_ASSISTENTE}`
     : `${textoSaudacao(estado.perfil?.nome)} ${TEXTO_TESTE}`;
 
-const REGIOES_AZURE = [
-  ['brazilsouth', 'Brazil South (São Paulo)'], ['eastus', 'East US'], ['westeurope', 'West Europe'], ['southcentralus', 'South Central US'],
-];
-
 async function abrirVoz(el) {
   const v = configVoz();
   const vozes = await vozesDoNavegador().catch(() => []);
   const primeiro = (estado.perfil?.nome || '').split(' ')[0] || 'você';
-  const elevenProprio = VOZES_ELEVEN.some((x) => x.id === v.eleven.voz) ? '' : v.eleven.voz;
   let teste = null;
   abrirModal({
     titulo: 'Assistente e voz',
@@ -385,42 +381,17 @@ async function abrirVoz(el) {
         </label>`)}
       </fieldset>
 
-      <div class="campo-largo grade-form" data-motor="azure">
-        <p class="campo-largo dica">1. Em <strong>portal.azure.com</strong> crie uma conta gratuita e um recurso <strong>Speech</strong> (Fala) no plano
-          <strong>Free F0</strong>, região <strong>Brazil South</strong>. 2. Em "Chaves e Ponto de Extremidade", copie a <strong>Chave 1</strong>.
-          O plano F0 dá 500 mil caracteres por mês (centenas de diagnósticos) e não cobra nada.</p>
-        <label class="campo-largo">Chave do Azure Speech
-          <input name="azureChave" type="password" autocomplete="off" spellcheck="false" maxlength="200" value="${v.azure.chave}" />
+      <div class="campo-largo grade-form" data-motor="propria">
+        <p class="campo-largo dica">Sua voz é gerada no seu próprio Google Colab (grátis, com GPU) a partir de uma gravação sua de 20 a 40 segundos.
+          O passo a passo e o script estão no guia <strong>docs/VOZ-PROPRIA.md</strong> do projeto. Quando a célula do Colab estiver rodando,
+          copie o endereço que ela mostra (termina em <strong>ngrok-free.app</strong>) e cole abaixo. Com o Colab desligado, o app usa a voz do navegador.</p>
+        <label class="campo-largo">Endereço do servidor de voz
+          <input name="propriaUrl" type="text" inputmode="url" autocomplete="off" spellcheck="false" maxlength="200"
+            value="${v.propria.url}" placeholder="https://seu-endereco.ngrok-free.app" />
         </label>
-        <label>Região
-          <select name="azureRegiao">${REGIOES_AZURE.map(([id, nome]) => html`<option value="${id}" ${id === v.azure.regiao ? 'selected' : ''}>${nome}</option>`)}</select>
-        </label>
-        <label>Voz
-          <select name="azureVoz">${VOZES_AZURE.map((x) => html`<option value="${x.id}" ${x.id === v.azure.voz ? 'selected' : ''}>${x.id.replace(/^pt-BR-|Neural$/g, '')}, ${x.descricao}</option>`)}</select>
-        </label>
-      </div>
-
-      <div class="campo-largo grade-form" data-motor="eleven">
-        <p class="campo-largo dica">1. Em <strong>elevenlabs.io</strong> crie uma conta grátis (sem cartão). 2. Em <strong>Developers → API Keys</strong>,
-          crie uma chave com permissão de Text to Speech. O plano grátis dá cerca de 10 mil créditos por mês (alguns diagnósticos).
-          Para uma voz só sua, use o <strong>Voice Design</strong> (descreva, por exemplo, "voz masculina grave, formal, calma e polida"),
-          salve a voz e cole o <strong>Voice ID</strong> abaixo.</p>
-        <label class="campo-largo">Chave da ElevenLabs
-          <input name="elevenChave" type="password" autocomplete="off" spellcheck="false" maxlength="200" value="${v.eleven.chave}" />
-        </label>
-        <label>Voz pronta
-          <select name="elevenVoz">${VOZES_ELEVEN.map((x) => html`<option value="${x.id}" ${x.id === v.eleven.voz ? 'selected' : ''}>${x.descricao}</option>`)}</select>
-        </label>
-        <label>ou ID de uma voz sua
-          <input name="elevenProprio" maxlength="40" pattern="[A-Za-z0-9]{10,40}" value="${elevenProprio}" placeholder="opcional" autocomplete="off" spellcheck="false" />
-        </label>
-      </div>
-
-      <div class="campo-largo grade-form" data-motor="gemini">
-        <p class="campo-largo dica">Usa a chave do Gemini cadastrada em <strong>Diagnóstico com IA</strong>. A cota gratuita de voz do Google é muito
-          pequena; se acabar, o app usa a voz do navegador.</p>
-        <label class="campo-largo">Voz do Gemini
-          <select name="vozGemini">${VOZES_GEMINI.map((x) => html`<option value="${x.id}" ${x.id === v.vozGemini ? 'selected' : ''}>${x.id}, ${x.descricao}</option>`)}</select>
+        <label class="campo-largo">Token do servidor (opcional)
+          <input name="propriaToken" type="password" autocomplete="off" spellcheck="false" maxlength="200" value="${v.propria.token}"
+            placeholder="o mesmo TOKEN_VOZ do script, se você definiu um" />
         </label>
       </div>
 
@@ -445,8 +416,8 @@ async function abrirVoz(el) {
       <span class="campo-acao campo-largo"><button type="button" class="btn btn-secundario" data-testar-voz>Testar voz</button></span>
       <label class="check campo-largo"><input type="checkbox" name="lerAuto" ${v.lerAuto ? 'checked' : ''} /> Ler em voz alta assim que o diagnóstico ficar pronto</label>
       <label class="check campo-largo"><input type="checkbox" name="saudacao" ${v.saudacao ? 'checked' : ''} /> Saudação por voz ao entrar ("Boa noite, ${primeiro}. Aqui é ${v.assistente}…")</label>
-      <p class="campo-largo dica">Com voz neural, cada saudação é gerada uma única vez e fica guardada neste aparelho: nas próximas entradas toca na hora,
-        sem gastar cota. As chaves de voz ficam só neste aparelho.</p>
+      <p class="campo-largo dica">Com a sua voz, cada saudação é gerada uma única vez e fica guardada neste aparelho: nas próximas entradas toca na hora,
+        mesmo com o Colab desligado. O endereço e o token ficam só neste aparelho.</p>
     </div>`,
     aoMontar(form) {
       const mostrarMotor = () => {
@@ -462,6 +433,10 @@ async function abrirVoz(el) {
         teste?.parar();
         const anterior = configVoz();
         const d = dadosVoz(Object.fromEntries(new FormData(form)));
+        if (d.motor === 'propria' && !d.propria.url) {
+          avisar('Cole o endereço HTTPS do ngrok (ou trycloudflare.com) mostrado no Colab.', 'erro');
+          return;
+        }
         salvarConfigVoz(d); // o narrador lê a configuração salva
         teste = criarNarrador(textoTeste(d), { aoAviso: (m) => avisar(m, 'erro') }, { vinheta: d.estilo === 'assistente' && d.motor !== 'navegador' });
         teste.iniciar().catch(avisarErro).finally(() => salvarConfigVoz(anterior));
@@ -469,7 +444,14 @@ async function abrirVoz(el) {
       form.closest('dialog').addEventListener('close', () => teste?.parar());
     },
     async aoEnviar(f) {
-      salvarConfigVoz({ ...dadosVoz(f), lerAuto: f.lerAuto === 'on', saudacao: f.saudacao === 'on' });
+      const d = dadosVoz(f);
+      if (d.motor === 'propria' && !d.propria.url) {
+        avisar('Cole o endereço HTTPS do ngrok (ou trycloudflare.com) mostrado no Colab.', 'erro');
+        return false;
+      }
+      // trocou de servidor: as saudações guardadas podem ser de outra gravação
+      if (d.propria.url !== v.propria.url) await esquecerAudiosGuardados();
+      salvarConfigVoz({ ...d, lerAuto: f.lerAuto === 'on', saudacao: f.saudacao === 'on' });
       avisar('Assistente e voz salvos.');
       desenhar(el);
     },
@@ -478,17 +460,14 @@ async function abrirVoz(el) {
 
 /** Campos do formulário de voz → configuração. */
 function dadosVoz(f) {
-  const proprio = String(f.elevenProprio || '').trim();
   return {
     assistente: nomeAssistenteValido(f.assistente),
     estilo: f.estilo,
     tratamento: f.tratamento,
     efeito: f.efeito,
     motor: f.motor,
-    azure: { chave: String(f.azureChave || '').trim(), regiao: f.azureRegiao, voz: f.azureVoz },
-    eleven: { chave: String(f.elevenChave || '').trim(), voz: /^[A-Za-z0-9]{10,40}$/.test(proprio) ? proprio : f.elevenVoz },
+    propria: { url: urlServidorValida(f.propriaUrl), token: String(f.propriaToken || '').trim() },
     vozNavegador: f.vozNavegador || '',
-    vozGemini: f.vozGemini,
     velocidade: Number(f.velocidade),
   };
 }
