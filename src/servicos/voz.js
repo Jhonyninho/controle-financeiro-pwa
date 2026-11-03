@@ -124,26 +124,51 @@ function ordenarVozes(vozes) {
   return [...vozes].sort((a, b) => nota(a) - nota(b));
 }
 
+/**
+ * Frase pronta para ler em voz alta: maiúscula no início e pontuação no fim. Sem o ponto
+ * final, a voz emenda um item no outro e a divisão em frases não acontece.
+ */
+export function pontuar(texto) {
+  const t = String(texto || '').replace(/\s+/g, ' ').trim().replace(/[\s,;:–—-]+$/u, '');
+  if (!t) return '';
+  const cap = t.charAt(0).toLocaleUpperCase('pt-BR') + t.slice(1);
+  return /[.!?…]["”)]?$/u.test(cap) ? cap : `${cap}.`;
+}
+
+const FRASE_MAX = 200; // a voz do navegador corta falas muito longas (Chrome: cerca de 15 s)
+
+/** Frase longa demais é quebrada na vírgula (ou ponto e vírgula) mais perto do meio. */
+function quebrarLonga(f) {
+  if (f.length <= FRASE_MAX) return [f];
+  const cortes = [...f.matchAll(/[,;]\s/g)].map((m) => m.index + 1).filter((i) => i > 40 && f.length - i > 40);
+  if (!cortes.length) return [f];
+  const meio = f.length / 2;
+  const i = cortes.reduce((a, b) => (Math.abs(b - meio) < Math.abs(a - meio) ? b : a));
+  return [...quebrarLonga(f.slice(0, i).trim()), ...quebrarLonga(f.slice(i).trim())];
+}
+
 /** Quebra o texto em frases para narrar e destacar uma de cada vez. */
 export function dividirFrases(texto) {
   return String(texto || '')
     .replace(/\s+/g, ' ')
-    .split(/(?<=[.!?…;:])\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9"“(])/u)
+    .split(/(?<=[.!?…;:])\s+(?=[A-ZÁÉÍÓÚÂÊÔÃÕÇ0-9"“(])|(?<=[.!?…])\s+(?=[a-záéíóúâêôãõç])/u)
     .map((f) => f.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .flatMap(quebrarLonga);
 }
 
 /** Texto falado a partir do diagnóstico (mesma ordem da tela). */
 export function roteiroDoDiagnostico(d) {
   const partes = [];
-  if (d.resumo) partes.push(d.resumo);
-  if (d.pontos_fortes?.length) partes.push(`Pontos fortes. ${d.pontos_fortes.join(' ')}`);
-  if (d.pontos_de_atencao?.length) partes.push(`Pontos de atenção. ${d.pontos_de_atencao.join(' ')}`);
+  const itens = (l) => l.map(pontuar).filter(Boolean).join(' ');
+  if (d.resumo) partes.push(pontuar(d.resumo));
+  if (d.pontos_fortes?.length) partes.push(`Pontos fortes. ${itens(d.pontos_fortes)}`);
+  if (d.pontos_de_atencao?.length) partes.push(`Pontos de atenção. ${itens(d.pontos_de_atencao)}`);
   for (const e of d.estrategias || []) {
     const eco = e.economia ? ` Economia estimada de ${Math.round(e.economia)} reais por mês.` : '';
-    partes.push(`${e.titulo}. ${e.acao}${eco}`);
+    partes.push(`${itens([e.titulo, e.acao])}${eco}`);
   }
-  if (d.metas?.length) partes.push(`Sobre as metas. ${d.metas.join(' ')}`);
+  if (d.metas?.length) partes.push(`Sobre as metas. ${itens(d.metas)}`);
   // falas mais naturais: "R$ 1.234,56" → "1.234,56 reais"
   return partes.join(' ').replace(/R\$\s?([\d.]+(?:,\d{2})?)/g, '$1 reais');
 }

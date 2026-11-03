@@ -346,9 +346,13 @@ export async function excluirMeta(id) {
   ok(await supabase.from('metas').delete().eq('id', id));
 }
 
-/** Novo valor para vários lançamentos futuros (só altera quem ainda é PREVISTO). */
-export async function atualizarValorPrevistos(ids, valor) {
-  for (let i = 0; i < ids.length; i += 100) {
-    ok(await supabase.from('lancamentos').update({ valor }).eq('status', 'PREVISTO').in('id', ids.slice(i, i + 100)));
+/** Novo valor e/ou data em vários lançamentos futuros (só altera quem ainda é PREVISTO). */
+export async function atualizarPrevistos(alteracoes) {
+  for (let i = 0; i < alteracoes.length; i += 10) {
+    await Promise.all(
+      alteracoes.slice(i, i + 10).map(async ({ id, valor, data }) =>
+        ok(await supabase.from('lancamentos').update({ valor, data }).eq('status', 'PREVISTO').eq('id', id)),
+      ),
+    );
   }
 }

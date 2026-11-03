@@ -137,3 +137,30 @@ export function saldosMensais(contas, saldoAntes, lancamentos, meses) {
   });
   return { porConta, consolidado };
 }
+
+/**
+ * Saldo previsto: o que há nas contas + o que ainda vai entrar − o que ainda vai sair até `ate`
+ * (lançamentos PREVISTO, inclusive os vencidos e não pagos). Previsto no crédito entra pela
+ * fatura: conta só quando a fatura vence até o mês de `ate`.
+ * @param {number} saldoContas soma dos saldos reais das contas
+ * @param {object[]} previstos
+ * @param {string} ate 'AAAA-MM-DD'
+ */
+export function saldoPrevisto(saldoContas, previstos, ate) {
+  const inicioMes = `${ate.slice(0, 7)}-01`;
+  let entradas = 0;
+  let saidas = 0;
+  for (const p of previstos) {
+    if (p.status !== 'PREVISTO') continue;
+    const entra = p.forma_pagamento === 'Crédito' ? Boolean(p.fatura_mes) && p.fatura_mes <= inicioMes : p.data <= ate;
+    if (!entra) continue;
+    const c = Math.round(Number(p.valor) * 100);
+    if (p.tipo === 'ENTRADA') entradas += c;
+    else saidas += c;
+  }
+  return {
+    saldo: (Math.round(Number(saldoContas) * 100) + entradas - saidas) / 100,
+    entradas: entradas / 100,
+    saidas: saidas / 100,
+  };
+}

@@ -5,7 +5,7 @@ import { html, renderizar } from '../lib/html.js';
 import { parseValor, formatarData, formatarMoeda, normalizarTexto } from '../lib/formatos.js';
 import { hojeISO, nomeMes, somarMesesData } from '../lib/meses.js';
 import { mesDaFatura } from '../lib/calculos.js';
-import { extrairParcela, gerarParcelas, proximosParecidos } from '../importacao/previstos.js';
+import { alteracoesParaProximos, extrairParcela, gerarParcelas, proximosParecidos } from '../importacao/previstos.js';
 import { chaveDescricao } from '../importacao/classificador.js';
 import { categoriaPorId, contaPorId, contasAtivas, meiosDaConta } from '../estado.js';
 import { $, abrirModal, avisar, opcoesContas, opcoesFormaPagamento } from '../ui/componentes.js';
@@ -161,9 +161,11 @@ export function abrirFormLancamento({ lancamento = null, status = 'REALIZADO', a
       // categoria escolhida/alterada: oferece aplicar aos lançamentos iguais (depois que este modal fechar)
       const categoriaMudou = base.categoria_id && base.categoria_id !== categoriaOriginal;
       const replicarCategoria = () => categoriaMudou && oferecerReplicar({ ...base, id: l.id }, aoSalvar);
-      // previsto com valor novo: oferece levar o valor para os próximos meses da mesma despesa
-      if (edicao && previsto && Math.round(base.valor * 100) !== Math.round(Number(l.valor) * 100)) {
-        setTimeout(() => oferecerNovoValor({ ...base, id: l.id }, l, aoSalvar, replicarCategoria), 0);
+      // previsto com valor ou dia novo: oferece levar a mudança para os próximos meses da mesma despesa
+      const mudouValor = Math.round(base.valor * 100) !== Math.round(Number(l.valor) * 100);
+      const mudouDia = edicao && base.data.slice(8) !== String(l.data).slice(8);
+      if (edicao && previsto && (mudouValor || mudouDia)) {
+        setTimeout(() => oferecerAlteracoes({ ...base, id: l.id }, l, aoSalvar, replicarCategoria), 0);
       } else if (categoriaMudou) {
         setTimeout(replicarCategoria, 0);
       }
@@ -171,25 +173,37 @@ export function abrirFormLancamento({ lancamento = null, status = 'REALIZADO', a
   });
 }
 
-/** Previsto editado: oferece aplicar o novo valor aos próximos lançamentos futuros da mesma despesa. */
-async function oferecerNovoValor(editado, original, aoSalvar, depois) {
+/** Previsto editado: oferece aplicar o novo valor e/ou o novo dia aos próximos lançamentos da mesma despesa. */
+async function oferecerAlteracoes(editado, original, aoSalvar, depois) {
   try {
-    const proximos = proximosParecidos(editado, original.serie_id || null, await api.listarFuturos()).filter(
-      (p) => Math.round(Number(p.valor) * 100) !== Math.round(editado.valor * 100),
-    );
-    if (!proximos.length) return depois();
+    // busca a partir da data antiga: mudar o dia para o mês seguinte não esconde o próximo
+    const proximos = proximosParecidos({ ...editado, data: original.data }, original.serie_id || null, await api.listarFuturos());
+    const alteracoes = alteracoesParaProximos(original, editado, proximos);
+    if (!alteracoes.length) return depois();
+    const mudouValor = alteracoes.some((a) => Math.round(a.valor * 100) !== Math.round(Number(a.p.valor) * 100));
+    const mudouDia = alteracoes.some((a) => a.data !== a.p.data);
+    const oQue = [
+      mudouValor ? html`o valor <strong>${formatarMoeda(editado.valor)}</strong>` : '',
+      mudouValor && mudouDia ? ' e ' : '',
+      mudouDia ? html`o dia <strong>${Number(editado.data.slice(8))}</strong> de cada mês` : '',
+    ];
+    const nota = (a) =>
+      [
+        a.data !== a.p.data ? `${formatarData(a.p.data).slice(0, 5)} → ${formatarData(a.data).slice(0, 5)}` : '',
+        Math.round(a.valor * 100) !== Math.round(Number(a.p.valor) * 100) ? `hoje ${formatarMoeda(a.p.valor)}` : '',
+      ].filter(Boolean).join(', ');
     abrirSelecaoLancamentos({
-      titulo: 'Aplicar o novo valor aos próximos?',
+      titulo: 'Aplicar a mudança aos próximos?',
       intro: html`<p class="replicar-intro">
-        ${proximos.length === 1 ? 'Há mais 1 lançamento futuro' : `Há mais ${proximos.length} lançamentos futuros`} desta despesa.
-        Marque os que também devem passar para <strong>${formatarMoeda(editado.valor)}</strong>.
+        ${alteracoes.length === 1 ? 'Há mais 1 lançamento futuro' : `Há mais ${alteracoes.length} lançamentos futuros`} desta despesa.
+        Marque os que também devem receber ${oQue}.
       </p>`,
-      itens: proximos.map((p) => ({ ...p, chave: p.id, nota: `hoje ${formatarMoeda(p.valor)}` })),
+      itens: alteracoes.map((a, i) => ({ ...a.p, chave: i, nota: nota(a) })),
       textoOk: (n) => (n ? `Aplicar a ${n}` : 'Nada selecionado'),
-      async aoConfirmar(ids) {
-        if (ids.length) {
-          await api.atualizarValorPrevistos(ids, editado.valor);
-          avisar(`Novo valor aplicado a mais ${ids.length} lançamento(s) futuro(s).`);
+      async aoConfirmar(indices) {
+        if (indices.length) {
+          await api.atualizarPrevistos(indices.map((i) => ({ id: alteracoes[i].p.id, valor: alteracoes[i].valor, data: alteracoes[i].data })));
+          avisar(`Mudança aplicada a mais ${indices.length} lançamento(s) futuro(s).`);
           aoSalvar?.();
         }
         setTimeout(depois, 0);

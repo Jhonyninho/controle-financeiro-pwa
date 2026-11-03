@@ -212,7 +212,10 @@ Regras:
 - Se houver metas, diga se o ritmo atual atinge cada uma no prazo e o que mudar.
 - Sugestões de investimento só em termos gerais e educativos (reserva de emergência, Tesouro Selic, CDB com liquidez diária);
   não recomende produtos, corretoras ou ativos específicos.
-- Tom respeitoso, sem julgamento, sem emojis. Frases curtas.`;
+- Tom respeitoso, sem julgamento, sem emojis. Frases curtas.
+- Português do Brasil gramaticalmente correto, com pontuação completa: vírgulas onde a frase pede,
+  e toda frase termina em ponto final, ponto de interrogação ou de exclamação. Cada item das listas
+  é uma ou duas frases completas, começando com letra maiúscula e terminando com ponto.`;
 
 /**
  * Personalidade do assistente (o nome é o do assistente, nunca o do usuário). O texto também é

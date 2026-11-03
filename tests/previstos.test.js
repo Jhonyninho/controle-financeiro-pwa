@@ -122,3 +122,26 @@ describe('proximosParecidos (replicar novo valor)', () => {
     expect(proximosParecidos(editado, 's1', previstos).map((p) => p.id)).toEqual(['serie', 'cat', 'desc']);
   });
 });
+
+import { alteracoesParaProximos, comDiaDoMes } from '../src/importacao/previstos.js';
+
+describe('alteracoesParaProximos (valor e dia)', () => {
+  it('leva o novo dia para cada mês (limitado ao fim do mês) e o novo valor', () => {
+    const original = { data: '2026-11-05', valor: 1800 };
+    const editado = { data: '2026-11-30', valor: 1900 };
+    const proximos = [prev('a', '2026-12-05', 1800, 'X'), prev('b', '2027-02-05', 1800, 'X')];
+    expect(alteracoesParaProximos(original, editado, proximos).map((a) => [a.p.id, a.data, a.valor])).toEqual([
+      ['a', '2026-12-30', 1900],
+      ['b', '2027-02-28', 1900],
+    ]);
+  });
+
+  it('só o dia mudou: valor de cada um fica; quem já está certo some da lista', () => {
+    const r = alteracoesParaProximos({ data: '2026-11-05', valor: 50 }, { data: '2026-11-10', valor: 50 }, [
+      prev('a', '2026-12-05', 55, 'X'),
+      prev('b', '2027-01-10', 50, 'X'),
+    ]);
+    expect(r.map((a) => [a.p.id, a.data, a.valor])).toEqual([['a', '2026-12-10', 55]]);
+    expect(comDiaDoMes('2027-02-01', 31)).toBe('2027-02-28');
+  });
+});

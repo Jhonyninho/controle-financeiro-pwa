@@ -327,3 +327,11 @@
 .qr-mfa img { width: 180px; height: 180px; padding: 10px; border-radius: 14px; background: #fff; }
 .segredo-mfa { display: inline-block; margin-top: 4px; padding: 4px 8px; border-radius: 8px; background: var(--vidro-forte); word-break: break-all; user-select: all; font-size: 0.82rem; letter-spacing: 0.06em; }
 .campo-codigo { font-size: 1.4rem; letter-spacing: 0.35em; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* saldo previsto (Resumo): contas + a receber − a pagar até o fim do período */
+.saldo-previsto { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 12px; width: 100%; margin-top: 14px; padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--tinta) 16%, transparent); border-radius: 14px; background: color-mix(in srgb, var(--tinta) 5%, transparent); color: inherit; text-decoration: none; }
+.saldo-previsto:hover { border-color: color-mix(in srgb, var(--ciano) 45%, transparent); }
+.saldo-previsto > span { font-size: 0.82rem; color: var(--texto-2); }
+.saldo-previsto > strong { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.saldo-previsto small { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 0.76rem; color: var(--texto-3); }

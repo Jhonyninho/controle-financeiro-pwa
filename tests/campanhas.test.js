@@ -149,3 +149,20 @@ describe('assistente próprio', () => {
     expect(promptSistema('M.A.V.I.Z.')).toMatch(/severo/);
   });
 });
+
+import { pontuar } from '../src/servicos/voz.js';
+
+describe('pontuação da fala', () => {
+  it('itens sem ponto final ganham ponto e maiúscula', () => {
+    expect(pontuar('gastos com delivery subiram')).toBe('Gastos com delivery subiram.');
+    expect(pontuar('Tudo certo?')).toBe('Tudo certo?');
+    expect(pontuar('lista termina em vírgula,')).toBe('Lista termina em vírgula.');
+    const t = roteiroDoDiagnostico({ resumo: 'mês apertado', pontos_fortes: ['reserva mantida', 'sem juros'], estrategias: [] });
+    expect(dividirFrases(t)).toEqual(['Mês apertado.', 'Pontos fortes.', 'Reserva mantida.', 'Sem juros.']);
+  });
+
+  it('frase longa demais é dividida na vírgula mais perto do meio', () => {
+    const longa = `${'a'.repeat(120)}, ${'b'.repeat(120)}.`;
+    expect(dividirFrases(longa)).toEqual([`${'a'.repeat(120)},`, `${'b'.repeat(120)}.`]);
+  });
+});

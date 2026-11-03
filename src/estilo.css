@@ -547,6 +547,18 @@ progress.p-saida { --cat: var(--saida); }
   .filtros select[name='categoria'] { grid-column: 1 / -1; }
 }
 
+/* ---------- seleção em lote (Futuros) ---------- */
+.barra-selecao { display: flex; justify-content: space-between; align-items: center; gap: 8px 12px; flex-wrap: wrap; margin-bottom: 12px; font-size: 0.82rem; color: var(--texto-2); }
+.barra-selecao > span:last-child { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.barra-selecao .btn-perigo:disabled { opacity: 0.45; cursor: default; }
+.sel-mes { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.sel-mes input, .col-sel input { width: 18px; height: 18px; accent-color: var(--ciano); cursor: pointer; }
+.tabela .col-sel { width: 34px; padding-right: 0; }
+@media (max-width: 720px) {
+  .lista-lanc:has(.col-sel) tr { grid-template-columns: 22px 34px minmax(0, 1fr) auto; grid-template-areas: 'sel cat desc valor' 'sel cat desc acoes'; }
+  .lista-lanc td.col-sel { grid-area: sel; display: flex; align-items: center; }
+}
+
 /* ---------- aplicar a lançamentos iguais ---------- */
 .replicar-intro { color: var(--texto-2); }
 .replicar-destino { margin: 4px 0 18px; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--abismo) 55%, transparent); border: 1px solid var(--linha); }

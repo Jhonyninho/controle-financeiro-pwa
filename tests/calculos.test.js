@@ -93,3 +93,20 @@ describe('calculos', () => {
     expect(variacao(10, 0)).toBeNull();
   });
 });
+
+import { saldoPrevisto } from '../src/lib/calculos.js';
+
+describe('saldoPrevisto', () => {
+  it('contas + a receber − a pagar até o fim do mês, com vencidos e crédito pela fatura', () => {
+    const p = (data, valor, tipo, extra = {}) => ({ data, valor, tipo, status: 'PREVISTO', ...extra });
+    const previstos = [
+      p('2026-10-28', 100, 'SAIDA'), // vencido e não pago: ainda sai
+      p('2026-11-10', 1800, 'SAIDA'),
+      p('2026-11-20', 3000, 'ENTRADA'),
+      p('2026-12-05', 1800, 'SAIDA'), // mês seguinte: fora
+      p('2026-11-15', 300, 'SAIDA', { forma_pagamento: 'Crédito', fatura_mes: '2026-12-01' }), // fatura de dezembro: fora
+      p('2026-10-20', 200, 'SAIDA', { forma_pagamento: 'Crédito', fatura_mes: '2026-11-01' }),
+    ];
+    expect(saldoPrevisto(1000.5, previstos, '2026-11-30')).toEqual({ saldo: 1900.5, entradas: 3000, saidas: 2100 });
+  });
+});

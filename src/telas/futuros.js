@@ -16,6 +16,7 @@ let lista = [];
 let filtroConta = '';
 let plano = [];
 let abaAtiva = 'proximos';
+const selecionados = new Set(); // ids marcados para excluir em lote (só da aba/conta visível)
 
 function abas(hoje) {
   const em30 = somarDias(hoje, 30);
@@ -52,16 +53,27 @@ function desenhar(el) {
   renderizar(
     $('#area-futuros', el),
     visiveis.length
-      ? html`${[...porMes].map(([mes, itens]) => {
+      ? html`<div class="barra-selecao">
+          <span class="sel-contagem" aria-live="polite"></span>
+          <span>
+            <button type="button" class="btn-link" data-marcar="1">Marcar todos</button>
+            <button type="button" class="btn-link" data-marcar="0">Desmarcar</button>
+            <button type="button" class="btn btn-perigo btn-pequeno" data-acao="excluir-selecionados" disabled>Excluir selecionados</button>
+          </span>
+        </div>
+        ${[...porMes].map(([mes, itens]) => {
           const saldo = itens.reduce((s, l) => s + (l.tipo === 'ENTRADA' ? 1 : -1) * Number(l.valor), 0);
           return html`<section class="bloco">
             <header class="bloco-topo">
-              <h3>${nomeMes(mes)}</h3>
+              <label class="sel-mes"><input type="checkbox" data-sel-mes="${mes}" aria-label="Marcar todos de ${nomeMes(mes)}" />
+                <h3>${nomeMes(mes)}</h3></label>
               <span class="${saldo >= 0 ? 'positivo' : 'negativo'}">Previsto: ${formatarMoeda(saldo)}</span>
             </header>
             <div class="tabela-rolagem"><table class="tabela lista-lanc">
               <tbody>${itens.map(
                 (l) => html`<tr class="${l.data < hoje ? 'atrasado' : ''}">
+                  <td class="col-sel"><input type="checkbox" data-sel="${l.id}" data-mes="${mes}" aria-label="Selecionar ${l.descricao}"
+                    ${selecionados.has(l.id) ? 'checked' : ''} /></td>
                   <td data-rotulo="Vencimento">${formatarData(l.data)}${l.data < hoje ? html` <span class="selo selo-alerta">vencido</span>` : ''}</td>
                   <td data-rotulo="Descrição" class="col-desc">${l.descricao}${l.serie_tipo === 'PARCELA' ? html` <span class="selo">parcela</span>` : l.serie_tipo === 'FIXA' ? html` <span class="selo">fixa</span>` : ''}
                     <small class="so-celular">${formatarData(l.data).slice(0, 5)}, ${contaPorId(l.conta_id)?.nome || ''}${l.data < hoje ? ', vencido' : ''}</small></td>
@@ -84,10 +96,32 @@ function desenhar(el) {
             : 'Nenhum lançamento futuro. Cadastre contas a pagar, parcelas ou recebimentos previstos.',
         ),
   );
+  atualizarSelecao(el);
+}
+
+/** Contagem, botão de excluir e caixas "marcar o mês" conforme o que está marcado (sem redesenhar). */
+function atualizarSelecao(el) {
+  const caixas = [...el.querySelectorAll('[data-sel]')];
+  const n = caixas.filter((c) => c.checked).length;
+  const contagem = $('.sel-contagem', el);
+  if (contagem) contagem.textContent = n ? `${n} selecionado(s)` : 'Marque para excluir vários de uma vez';
+  const botao = $('[data-acao="excluir-selecionados"]', el);
+  if (botao) {
+    botao.disabled = !n;
+    botao.textContent = n ? `Excluir ${n}` : 'Excluir selecionados';
+  }
+  for (const m of el.querySelectorAll('[data-sel-mes]')) {
+    const doMes = caixas.filter((c) => c.dataset.mes === m.dataset.selMes);
+    const marcadas = doMes.filter((c) => c.checked).length;
+    m.checked = marcadas > 0 && marcadas === doMes.length;
+    m.indeterminate = marcadas > 0 && marcadas < doMes.length;
+  }
 }
 
 async function carregar(el) {
   lista = await api.listarFuturos();
+  const existentes = new Set(lista.map((l) => l.id));
+  for (const id of selecionados) if (!existentes.has(id)) selecionados.delete(id);
   desenhar(el);
   plano = await planoDeFixas(lista).catch(() => []);
   renderizar(
@@ -136,7 +170,22 @@ export default {
 
     $('.filtros', el).addEventListener('input', (e) => {
       filtroConta = e.target.value;
+      selecionados.clear();
       desenhar(el);
+    });
+
+    $('#area-futuros', el).addEventListener('change', (e) => {
+      const caixa = e.target.closest('[data-sel], [data-sel-mes]');
+      if (!caixa) return;
+      const alvo = caixa.dataset.selMes
+        ? [...el.querySelectorAll(`[data-sel][data-mes="${caixa.dataset.selMes}"]`)]
+        : [caixa];
+      for (const c of alvo) {
+        c.checked = caixa.checked;
+        if (c.checked) selecionados.add(c.dataset.sel);
+        else selecionados.delete(c.dataset.sel);
+      }
+      atualizarSelecao(el);
     });
 
     el.addEventListener('keydown', (e) => {
@@ -151,11 +200,34 @@ export default {
       const aba = e.target.closest('[data-aba]');
       if (aba) {
         abaAtiva = aba.dataset.aba;
+        selecionados.clear();
         return desenhar(el);
+      }
+      const marcar = e.target.closest('[data-marcar]');
+      if (marcar) {
+        for (const c of el.querySelectorAll('[data-sel]')) {
+          c.checked = marcar.dataset.marcar === '1';
+          if (c.checked) selecionados.add(c.dataset.sel);
+          else selecionados.delete(c.dataset.sel);
+        }
+        return atualizarSelecao(el);
       }
       const b = e.target.closest('[data-acao]');
       if (!b) return;
       const recarregar = () => carregar(el);
+      if (b.dataset.acao === 'excluir-selecionados') {
+        const ids = [...el.querySelectorAll('[data-sel]:checked')].map((c) => c.dataset.sel);
+        if (!ids.length || !(await confirmar(`Excluir ${ids.length} lançamento(s) futuro(s)?`, { textoOk: 'Excluir' }))) return;
+        try {
+          await api.excluirPrevistos(ids);
+          ids.forEach((id) => selecionados.delete(id));
+          avisar(`${ids.length} lançamento(s) excluído(s).`);
+          await recarregar();
+        } catch (err) {
+          avisar(err.message, 'erro');
+        }
+        return;
+      }
       if (b.dataset.acao === 'novo') return abrirFormLancamento({ status: 'PREVISTO', aoSalvar: recarregar });
       if (b.dataset.acao === 'prever-fixas') return oferecerFixas(plano, recarregar);
       const l = lista.find((x) => x.id === b.dataset.id);

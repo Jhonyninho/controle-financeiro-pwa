@@ -195,3 +195,26 @@ export function proximosParecidos(editado, serieId, previstos) {
     })
     .sort((a, b) => (a.data < b.data ? -1 : 1));
 }
+
+/** Mesma data com outro dia do mês (limitado ao último dia: 31 vira 30 ou 28/29). */
+export function comDiaDoMes(dataISO, dia) {
+  return somarMesesData(`${dataISO.slice(0, 8)}${String(dia).padStart(2, '0')}`, 0);
+}
+
+/**
+ * O que muda em cada próximo lançamento quando um previsto é editado: o valor novo e/ou o
+ * novo dia do mês (cada um continua no seu mês). Só devolve quem realmente muda.
+ * @returns {{p: object, valor: number, data: string}[]}
+ */
+export function alteracoesParaProximos(original, editado, proximos) {
+  const mudouValor = centavos(original.valor) !== centavos(editado.valor);
+  const diaNovo = Number(editado.data.slice(8));
+  const mudouDia = Number(String(original.data).slice(8)) !== diaNovo;
+  return proximos
+    .map((p) => ({
+      p,
+      valor: mudouValor ? Number(editado.valor) : Number(p.valor),
+      data: mudouDia ? comDiaDoMes(p.data, diaNovo) : p.data,
+    }))
+    .filter((a) => centavos(a.valor) !== centavos(a.p.valor) || a.data !== a.p.data);
+}

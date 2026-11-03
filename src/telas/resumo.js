@@ -5,7 +5,7 @@ import * as api from '../servicos/api.js';
 import { html, renderizar } from '../lib/html.js';
 import { formatarData, formatarMoeda } from '../lib/formatos.js';
 import { deslocarMes, hojeISO, limitesMes, nomeMes, somarDias } from '../lib/meses.js';
-import { agruparPorCategoriaMae, porCategoria, resumoPorConta, totais, variacao } from '../lib/calculos.js';
+import { agruparPorCategoriaMae, porCategoria, resumoPorConta, saldoPrevisto, totais, variacao } from '../lib/calculos.js';
 import { intervaloAtual, estado, categoriaPorId, categoriasForaDosGastos, contaPorId, definirMes } from '../estado.js';
 import { $, chipCategoria, estadoVazio } from '../ui/componentes.js';
 import { icone } from '../assets/icons/index.js';
@@ -78,6 +78,17 @@ function orbita(t, tAnt, rotuloAnterior, livre) {
       <div class="fluxo fluxo-saida"><dt>Saiu</dt><dd>${formatarMoeda(t.saidas)}</dd>${seta(vSai, true)}</div>
     </dl>
   </section>`;
+}
+
+/** Saldo das contas + o que ainda vai entrar − o que ainda vai sair até o fim do período. */
+function blocoPrevisto(p, fim) {
+  return html`<a class="saldo-previsto" href="#/futuros" title="Ver lançamentos futuros">
+    <span>Saldo previsto em ${formatarData(fim).slice(0, 5)}</span>
+    <strong class="${p.saldo < 0 ? 'negativo' : ''}">${formatarMoeda(p.saldo)}</strong>
+    <small>saldo das contas ${formatarMoeda(p.saldo - p.entradas + p.saidas)}
+      <span class="positivo">+ ${formatarMoeda(p.entradas)} a receber</span>
+      <span class="negativo">− ${formatarMoeda(p.saidas)} a pagar</span></small>
+  </a>`;
 }
 
 const SEGMENTOS = 6;
@@ -250,6 +261,8 @@ export default {
     const vencidos = futuros.filter((l) => l.data < hoje);
     const em7 = futuros.filter((l) => l.data >= hoje && l.data <= somarDias(hoje, 7));
     const proximos = futuros.filter((l) => l.data <= somarDias(hoje, 15)).slice(0, 6);
+    const saldoContas = estado.contas.filter((c) => c.ativo).reduce((s, c) => s + Number(saldosFim.get(c.id) ?? 0), 0);
+    const previsto = saldoPrevisto(saldoContas, futuros, fim);
     const ultimaImp = importacoes[0]?.criado_em?.slice(0, 10);
     const diasImp = ultimaImp ? Math.round((Date.parse(hoje) - Date.parse(ultimaImp)) / 86400000) : null;
     let iaPronta = false;
@@ -309,6 +322,7 @@ export default {
             ${visao === 'fluxo'
               ? orbita(t, tAnt, livre ? 'o período anterior' : nomeMes(deslocarMes(mes, -1), true), livre)
               : patrimonio(estado.contas.filter((c) => c.ativo), saldosFim, faturasAbertas, fim)}
+            ${fim >= hoje ? blocoPrevisto(previsto, fim) : ''}
           </div>
           <section class="inicio-contas">
             <div class="secao-titulo"><h3>Minhas contas</h3><a class="btn-link" href="#/contas">Gerenciar</a></div>
