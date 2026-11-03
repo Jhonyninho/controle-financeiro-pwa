@@ -205,24 +205,38 @@ async function registrarNaContaSalario(itens, contaDestino) {
   const comSalario = itens.filter((i) => i.contaSalario);
   if (!comSalario.length) return 0;
   const datas = comSalario.flatMap((i) => [i.data, i.contaSalario.dataSalario]).sort();
-  const vizinhos = await api.lancamentosEntreDatas(`${datas[0].slice(0, 7)}-01`, somarDias(datas.at(-1), 3));
+  const [vizinhos, futuros] = await Promise.all([
+    api.lancamentosEntreDatas(`${datas[0].slice(0, 7)}-01`, somarDias(datas.at(-1), 3)),
+    api.listarFuturos(),
+  ]);
+  const catSalario = categoriaSalario()?.id || null;
+  const confirmados = [];
   const novos = [];
   for (const i of comSalario) {
     const contaSalario = contaPorId(i.contaSalario.id);
     if (!contaSalario) continue;
+    // salário previsto naquele mês (ex.: lançamento futuro mensal): confirma em vez de criar outro
+    const mes = i.contaSalario.dataSalario.slice(0, 7);
+    const previsto = futuros.find((p) => p.conta_id === contaSalario.id && p.tipo === 'ENTRADA' && p.data.slice(0, 7) === mes
+      && !confirmados.some((x) => x.id === p.id)
+      && (Math.round(Number(p.valor) * 100) === Math.round(i.valor * 100) || (catSalario && p.categoria_id === catSalario)));
+    if (previsto) {
+      await api.confirmarFuturo(previsto.id, previsto.data);
+      confirmados.push({ ...previsto, status: 'REALIZADO' });
+    }
     novos.push(
       ...lancamentosDaContaSalario(i, {
         contaSalario,
         contaDestino,
         dataSalario: i.contaSalario.dataSalario,
-        existentes: [...vizinhos, ...novos],
+        existentes: [...vizinhos, ...confirmados, ...novos],
         catTransferencia: categoriaTransferencia('SAIDA')?.id || null,
-        catSalario: categoriaSalario()?.id || null,
+        catSalario,
       }),
     );
   }
   if (novos.length) await api.criarLancamentos(novos);
-  return novos.length;
+  return novos.length + confirmados.length;
 }
 
 /** Revisão dos lançamentos já importados: entradas de você mesmo sem par em outra conta. */
@@ -378,7 +392,7 @@ async function confirmarImportacao(el, botao) {
       selecionados.filter((i) => i.categoria_id && i.origem === 'contaSalario'),
       contaPorId(previa.contaId),
     );
-    if (naContaSalario) avisar(`Conta salário atualizada: ${naContaSalario} lançamento(s) criado(s).`, 'info');
+    if (naContaSalario) avisar(`Conta salário atualizada: ${naContaSalario} lançamento(s) registrado(s).`, 'info');
 
     // mostra o mês importado no Resumo/Lançamentos
     const ultimaData = selecionados.map((i) => i.data).sort().at(-1);

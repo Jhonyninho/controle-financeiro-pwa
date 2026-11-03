@@ -337,9 +337,27 @@
 .saldo-previsto small { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 0.76rem; color: var(--texto-3); }
 
 /* conta salário vinculada, dentro do cartão da conta para onde transfere */
-.cartao-salario { display: flex; justify-content: space-between; gap: 10px; margin: 8px 0 0; padding-top: 8px; border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent); font-size: 0.8rem; opacity: 0.9; }
+.cartao-salario p { display: flex; justify-content: space-between; gap: 10px; margin: 0; padding-top: 8px; border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent); font-size: 0.8rem; opacity: 0.9; }
+.cartao-salario { margin-top: 8px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent); }
+.cartao-salario p { border: 0; padding: 0; }
+.cartao-salario .btn-link { padding: 2px 0 0; font-size: 0.76rem; color: inherit; text-decoration: underline; opacity: 0.85; }
 
 /* importação: pergunta do salário vindo da conta salário */
 .lista-salario li { padding-bottom: 8px; }
 .salario-mes { display: flex; align-items: center; gap: 8px; margin: 2px 0 0 30px; font-size: 0.82rem; color: var(--texto-2); }
 .salario-mes select { width: auto; min-height: 32px; padding: 2px 8px; }
+
+/* comando de voz (topo) */
+.topo-titulo { margin-right: auto; }
+.btn-voz { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--linha); background: var(--vidro); color: var(--texto); }
+.btn-voz[hidden] { display: none; }
+.btn-voz svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.btn-voz:hover { border-color: color-mix(in srgb, var(--ciano) 55%, transparent); }
+.btn-voz.ouvindo { color: var(--abismo); background: var(--ciano); border-color: var(--ciano); animation: voz-pulso 1.1s ease-in-out infinite; }
+.btn-voz.convite { animation: voz-pulso 1.4s ease-in-out 3; border-color: var(--ciano); }
+@keyframes voz-pulso {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ciano) 45%, transparent); }
+  50% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--ciano) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .btn-voz.ouvindo, .btn-voz.convite { animation: none; } }

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Controle Financeiro: apresentação</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --ciano: #4fd1ff; --plasma: #8b7bff; --abismo: #070a1f; --tinta: #1d2246; --texto: #1b1f3a; --texto-2: #4c5378;
+    --linha: #dfe3f3; --entrada: #18b38a; --saida: #e8586e; --fundo-suave: #f4f6fd;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; color: var(--texto); font: 400 10.5pt/1.5 "Segoe UI", system-ui, sans-serif;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pagina { width: 210mm; height: 297mm; padding: 18mm 18mm 16mm; position: relative; overflow: hidden; page-break-after: always; break-after: page; }
+  .pagina:last-child { page-break-after: auto; break-after: auto; }
+  h1, h2, h3 { margin: 0; line-height: 1.2; color: var(--tinta); }
+  h2 { font-size: 20pt; font-weight: 700; margin-bottom: 4mm; }
+  h2 small { display: block; font-size: 10pt; font-weight: 500; color: var(--texto-2); margin-top: 1.5mm; letter-spacing: 0.02em; }
+  h3 { font-size: 11.5pt; margin-bottom: 1.5mm; }
+  p { margin: 0 0 3mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1.2mm; }
+  .faixa { height: 3px; width: 34mm; border-radius: 3px; background: linear-gradient(90deg, var(--ciano), var(--plasma)); margin-bottom: 6mm; }
+  .rodape { position: absolute; left: 18mm; right: 18mm; bottom: 9mm; display: flex; justify-content: space-between; font-size: 8pt; color: #8a90b0; }
+
+  /* capa */
+  .capa { background: radial-gradient(circle at 50% 38%, #1a2160 0%, #0d1236 48%, var(--abismo) 100%); color: #eef1ff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+  .capa img { width: 46mm; height: 46mm; margin-bottom: 10mm; filter: drop-shadow(0 0 18px rgba(79, 209, 255, 0.35)); }
+  .capa h1 { color: #fff; font-size: 34pt; font-weight: 700; letter-spacing: -0.01em; }
+  .capa .sub { font-size: 14pt; color: #b9c2ff; margin-top: 4mm; }
+  .capa .linha { width: 60mm; height: 2px; margin: 10mm auto; background: linear-gradient(90deg, transparent, var(--ciano), var(--plasma), transparent); }
+  .capa .itens { display: flex; gap: 7mm; font-size: 10pt; color: #d7dcff; }
+  .capa .itens span::before { content: "●"; color: var(--ciano); margin-right: 2mm; font-size: 7pt; vertical-align: 1px; }
+  .capa .rodape { color: #7d86c2; }
+
+  .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 4.5mm; }
+  .grade-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .card { border: 1px solid var(--linha); border-radius: 4mm; padding: 4.5mm 5mm; background: #fff; break-inside: avoid; }
+  .card p, .card ul { margin-bottom: 0; font-size: 9.6pt; color: var(--texto-2); }
+  .card .tag { display: inline-block; font-size: 7.5pt; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--plasma); margin-bottom: 1mm; }
+  .destaque { background: var(--fundo-suave); border: 0; }
+  .numero { display: inline-grid; place-items: center; width: 7mm; height: 7mm; border-radius: 50%; background: linear-gradient(135deg, var(--ciano), var(--plasma)); color: #fff; font-weight: 700; font-size: 9pt; margin-right: 2.5mm; vertical-align: middle; }
+  .passos { list-style: none; padding: 0; counter-reset: p; }
+  .passos li { position: relative; padding: 2.4mm 0 2.4mm 11mm; border-bottom: 1px solid var(--linha); margin: 0; }
+  .passos li::before { counter-increment: p; content: counter(p); position: absolute; left: 0; top: 2.2mm; width: 7mm; height: 7mm; border-radius: 50%; background: linear-gradient(135deg, var(--ciano), var(--plasma)); color: #fff; font-weight: 700; font-size: 9pt; display: grid; place-items: center; }
+  .passos li b { color: var(--tinta); }
+  .passos .tempo { float: right; font-size: 8.5pt; color: var(--texto-2); }
+  .intro { font-size: 11pt; color: var(--texto-2); max-width: 160mm; margin-bottom: 6mm; }
+  .aviso { border-left: 3px solid var(--plasma); background: var(--fundo-suave); padding: 3mm 4mm; border-radius: 0 3mm 3mm 0; font-size: 9.4pt; color: var(--texto-2); }
+  .tabela { width: 100%; border-collapse: collapse; font-size: 9.4pt; }
+  .tabela th, .tabela td { text-align: left; padding: 2.2mm 2.5mm; border-bottom: 1px solid var(--linha); vertical-align: top; }
+  .tabela th { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.05em; color: var(--texto-2); font-weight: 600; }
+  .tabela td:first-child { white-space: nowrap; font-weight: 600; color: var(--tinta); }
+  .mono { font-family: Consolas, monospace; font-size: 9pt; background: var(--fundo-suave); padding: 0.4mm 1.5mm; border-radius: 1.5mm; }
+</style>
+</head>
+<body>
+
+<!-- 1. capa -->
+<section class="pagina capa">
+  <img src="../marca/icone.svg" alt="" />
+  <h1>Controle Financeiro</h1>
+  <p class="sub">Suas finanças pessoais num painel só, com assistente de IA e voz</p>
+  <div class="linha"></div>
+  <div class="itens"><span>Importação de extrato</span><span>Contas a pagar</span><span>Diagnóstico com IA</span><span>Comando de voz</span></div>
+  <div class="rodape"><span>Apresentação do produto, versão 1.0</span><span>Plano de demonstração e instalação</span></div>
+</section>
+
+<!-- 2. o que é -->
+<section class="pagina">
+  <h2>O que é<small>Um app de finanças pessoais que funciona no celular e no computador</small></h2>
+  <div class="faixa"></div>
+  <p class="intro">O Controle Financeiro reúne todas as contas bancárias, cartões e carteira em um só lugar. A pessoa importa o
+    extrato do banco em poucos cliques, o app classifica cada gasto sozinho e mostra para onde o dinheiro está indo, o que ainda
+    vai vencer e quanto vai sobrar no fim do mês.</p>
+  <div class="grade">
+    <div class="card destaque"><span class="tag">Para quem</span><h3>Quem quer sair do "não sei para onde foi o dinheiro"</h3>
+      <p>Pessoas com uma ou várias contas, cartão de crédito, salário em conta salário, contas fixas e parcelas, que querem controle sem planilha manual.</p></div>
+    <div class="card destaque"><span class="tag">Problema que resolve</span><h3>Planilha dá trabalho e app de banco mostra um banco só</h3>
+      <p>Aqui todas as contas ficam juntas, os lançamentos chegam pelo extrato e a análise é feita automaticamente.</p></div>
+  </div>
+  <h3 style="margin-top:8mm">Diferenciais</h3>
+  <div class="grade-3" style="margin-top:3mm">
+    <div class="card"><span class="tag">Automático</span><h3>Classifica sozinho</h3><p>Regras, histórico e palavras-chave sugerem a categoria. Corrigiu uma vez, o app aprende.</p></div>
+    <div class="card"><span class="tag">Previsão</span><h3>Saldo previsto</h3><p>Saldo de hoje + o que vai entrar − o que vai vencer até o fim do mês.</p></div>
+    <div class="card"><span class="tag">Assistente</span><h3>IA que explica</h3><p>Diagnóstico do mês em linguagem simples, narrado em voz, com estratégias de economia.</p></div>
+    <div class="card"><span class="tag">Sem duplicar</span><h3>Transferências certas</h3><p>Reconhece transferências entre as próprias contas e não soma como renda ou gasto.</p></div>
+    <div class="card"><span class="tag">Voz</span><h3>Comando falado</h3><p>Toque no microfone e diga "lançamentos futuros": o app abre a tela.</p></div>
+    <div class="card"><span class="tag">Seguro</span><h3>Dados protegidos</h3><p>Acesso por convite, senha e verificação em duas etapas. Cada pessoa só vê os próprios dados.</p></div>
+  </div>
+  <div class="rodape"><span>Controle Financeiro</span><span>2</span></div>
+</section>
+
+<!-- 3. funcionalidades -->
+<section class="pagina">
+  <h2>O que o app faz<small>As telas principais e o que cada uma entrega</small></h2>
+  <div class="faixa"></div>
+  <div class="grade">
+    <div class="card"><span class="tag">Início</span><h3>Resumo</h3><ul>
+      <li>Saudação do assistente, avisos do dia (feriados, datas de IPVA, 13º).</li>
+      <li>Anel do mês: quanto entrou, quanto saiu, % da renda gasta.</li>
+      <li>Patrimônio somando todas as contas e saldo previsto até o fim do mês.</li>
+      <li>Carteira com os cartões das contas, fatura do cartão e limite.</li>
+      <li>Maiores gastos e próximos vencimentos com botão "Paguei".</li></ul></div>
+    <div class="card"><span class="tag">Entrada de dados</span><h3>Importar extrato</h3><ul>
+      <li>Baixa um modelo de planilha já com as categorias da pessoa.</li>
+      <li>Uma IA externa preenche o modelo a partir do extrato do banco.</li>
+      <li>O app lê, mostra a prévia, evita duplicados e classifica.</li>
+      <li>Reconhece transferências entre contas e o salário vindo da conta salário.</li></ul></div>
+    <div class="card"><span class="tag">Agenda</span><h3>Lançamentos futuros</h3><ul>
+      <li>Contas a pagar e a receber, parcelas e despesas fixas.</li>
+      <li>Prevê sozinho as despesas fixas dos próximos meses.</li>
+      <li>Editou valor ou dia de uma? Aplica aos próximos meses.</li>
+      <li>Excluir vários de uma vez; quando o extrato chega, troca o previsto pelo real.</li></ul></div>
+    <div class="card"><span class="tag">Histórico</span><h3>Lançamentos e relatórios</h3><ul>
+      <li>Busca e filtros por conta, categoria e período.</li>
+      <li>Relatórios por categoria, mês a mês e saldos por conta.</li>
+      <li>Toque numa categoria para ver o detalhe de cada gasto.</li></ul></div>
+    <div class="card"><span class="tag">Inteligência</span><h3>Análise e metas</h3><ul>
+      <li>Alertas: categorias variáveis acima da média dos últimos meses.</li>
+      <li>Simulador de metas (reserva, viagem) e orçamento 50/30/20.</li>
+      <li>Diagnóstico com IA, lido em voz pelo assistente M.A.V.I.Z.</li></ul></div>
+    <div class="card"><span class="tag">Organização</span><h3>Contas e categorias</h3><ul>
+      <li>Conta corrente, digital, poupança, investimento, carteira e conta salário.</li>
+      <li>Cartão de crédito dentro da conta, com fechamento e vencimento.</li>
+      <li>Encerrar conta mantém o histórico; temas e cores personalizáveis.</li></ul></div>
+  </div>
+  <div class="rodape"><span>Controle Financeiro</span><span>3</span></div>
+</section>
+
+<!-- 4. instalação -->
+<section class="pagina">
+  <h2>Como começar<small>Acesso, instalação no celular e primeiros passos</small></h2>
+  <div class="faixa"></div>
+  <div class="grade">
+    <div class="card destaque"><span class="tag">1. Acesso</span><h3>Convite por e-mail</h3>
+      <p>O acesso é só por convite. A pessoa recebe o e-mail, define a senha e entra. Recomendado: ativar a verificação em duas etapas (app autenticador) em Configurações → Segurança.</p></div>
+    <div class="card destaque"><span class="tag">2. Instalar</span><h3>Vira um app no celular</h3>
+      <p>Não precisa de loja de aplicativos: o app é instalado direto pelo navegador e abre em tela cheia pelo ícone "Financeiro".</p></div>
+  </div>
+  <table class="tabela" style="margin-top:6mm">
+    <tr><th>Aparelho</th><th>Como instalar</th></tr>
+    <tr><td>Android</td><td>Abra o endereço do app no Chrome, Edge ou Samsung Internet e toque em <b>Instalar</b> no aviso da tela inicial (ou menu ⋮ → <b>Instalar app</b>).</td></tr>
+    <tr><td>iPhone / iPad</td><td>No Safari, toque em <b>Compartilhar</b> (quadrado com seta) → <b>Adicionar à Tela de Início</b> → <b>Adicionar</b>.</td></tr>
+    <tr><td>Computador</td><td>No Chrome ou Edge, clique no ícone de instalar na barra de endereço.</td></tr>
+  </table>
+  <h3 style="margin-top:7mm">Primeiros passos dentro do app</h3>
+  <ol class="passos">
+    <li><b>Cadastrar as contas</b>: bancos, carteira, investimento e conta salário, com o saldo inicial de cada uma.</li>
+    <li><b>Importar o primeiro extrato</b>: baixar o modelo, pedir para uma IA preenchê-lo com o extrato do banco e importar.</li>
+    <li><b>Revisar as categorias</b> da prévia; as correções viram regras para as próximas importações.</li>
+    <li><b>Cadastrar as contas a pagar</b> e aceitar a previsão das despesas fixas em Lançamentos futuros.</li>
+    <li><b>Ativar a IA</b> (opcional): colar uma chave gratuita do Groq em Configurações para o diagnóstico e a voz.</li>
+  </ol>
+  <p class="aviso" style="margin-top:5mm">Os dados ficam num banco de dados protegido, nunca no aparelho. As chaves de IA ficam só no aparelho da pessoa, e
+    para a IA vão apenas totais por categoria: nunca descrições, nomes de contas ou nomes de pessoas.</p>
+  <div class="rodape"><span>Controle Financeiro</span><span>4</span></div>
+</section>
+
+<!-- 5. roteiro da demonstração -->
+<section class="pagina">
+  <h2>Roteiro da demonstração<small>Cerca de 12 minutos, com o usuário de demonstração (dados fictícios)</small></h2>
+  <div class="faixa"></div>
+  <p class="intro">Use sempre o usuário de demonstração, que tem 6 meses de dados simulados de um titular fictício. Assim nenhum dado real aparece na tela.
+    Antes de apresentar, rode de novo o script <span class="mono">supabase/demo/semear_demo.sql</span> para as datas ficarem atuais.</p>
+  <ol class="passos">
+    <li><span class="tempo">1 min</span><b>Abertura</b>: tela de entrada com o anel animado, "acesso autorizado" e a saudação falada do assistente.</li>
+    <li><span class="tempo">2 min</span><b>Resumo</b>: anel do mês, patrimônio, saldo previsto até o fim do mês, carteira de cartões e a linha da conta salário.</li>
+    <li><span class="tempo">1 min</span><b>Comando de voz</b>: tocar no microfone e dizer "lançamentos futuros".</li>
+    <li><span class="tempo">2 min</span><b>Lançamentos futuros</b>: parcelas do notebook, despesas fixas, IPVA. Editar o valor do aluguel e aplicar aos próximos meses; marcar vários e excluir.</li>
+    <li><span class="tempo">2 min</span><b>Importar extrato</b>: mostrar o modelo, a prévia com categorias sugeridas, a transferência reconhecida e a pergunta do salário.</li>
+    <li><span class="tempo">2 min</span><b>Relatórios e análise</b>: gastos por categoria, alertas de excesso, metas de reserva e viagem.</li>
+    <li><span class="tempo">1 min</span><b>Diagnóstico com IA</b>: gerar e ouvir o assistente explicando o mês.</li>
+    <li><span class="tempo">1 min</span><b>Fechamento</b>: instalar no celular, segurança (convite e duas etapas), perguntas.</li>
+  </ol>
+  <div class="grade" style="margin-top:6mm">
+    <div class="card"><span class="tag">Antes de começar</span><ul>
+      <li>Celular carregado, volume ligado e microfone permitido.</li>
+      <li>Entrar no usuário de demonstração antes (sem 2FA).</li>
+      <li>Chave do Groq já colada no aparelho da demonstração.</li></ul></div>
+    <div class="card"><span class="tag">Cuidados</span><ul>
+      <li>Nunca abrir o app logado na conta real durante a apresentação.</li>
+      <li>Ter um extrato fictício (modelo preenchido) para importar ao vivo.</li>
+      <li>Se a internet falhar, mostrar as telas já abertas.</li></ul></div>
+  </div>
+  <div class="rodape"><span>Controle Financeiro</span><span>5</span></div>
+</section>
+
+<!-- 6. base do vídeo -->
+<section class="pagina">
+  <h2>Base para o vídeo de divulgação<small>Rascunho de um vídeo curto (30 a 45 segundos, vertical, para redes sociais)</small></h2>
+  <div class="faixa"></div>
+  <table class="tabela">
+    <tr><th>Tempo</th><th>Cena</th><th>Fala ou texto na tela</th></tr>
+    <tr><td>0–3 s</td><td>Pessoa olhando o extrato, confusa</td><td>"Chegou o fim do mês e o dinheiro sumiu?"</td></tr>
+    <tr><td>3–8 s</td><td>Abertura do app, anel animado e saudação</td><td>"Conheça o Controle Financeiro."</td></tr>
+    <tr><td>8–15 s</td><td>Importação do extrato com as categorias aparecendo</td><td>"Importe o extrato e ele organiza tudo sozinho."</td></tr>
+    <tr><td>15–22 s</td><td>Resumo: patrimônio e saldo previsto</td><td>"Veja quanto tem, o que vai vencer e quanto vai sobrar."</td></tr>
+    <tr><td>22–30 s</td><td>Comando de voz e diagnóstico falado</td><td>"Fale com o app e ouça a análise do seu mês."</td></tr>
+    <tr><td>30–38 s</td><td>Instalação no celular e tela de segurança</td><td>"No seu celular, com segurança de banco."</td></tr>
+    <tr><td>38–45 s</td><td>Logo e chamada</td><td>"Peça seu convite." (link ou contato)</td></tr>
+  </table>
+  <h3 style="margin-top:7mm">Para definir antes de gravar</h3>
+  <ul>
+    <li>Preço e forma de venda (assinatura mensal, anual ou pagamento único) e o contato para pedir o convite.</li>
+    <li>Narração: voz própria, locutor ou a voz do assistente; trilha sonora livre de direitos.</li>
+    <li>Gravação da tela do celular com o usuário de demonstração (nunca com dados reais).</li>
+    <li>Formatos: 9:16 para Reels, TikTok e Status; 16:9 para YouTube.</li>
+  </ul>
+  <div class="rodape"><span>Controle Financeiro</span><span>6</span></div>
+</section>
+
+</body>
+</html>

@@ -22,7 +22,7 @@ npx vitest run -t "parseValor"      # tests matching a name
 GEMINI_API_KEY=… npm run gerar-falas  # record greetings (env: VOZ, FORCAR=1, TRATAMENTOS)
 ```
 
-Database changes: add a new file in `supabase/migrations/` (never edit an applied one). Owner setup steps: `docs/SETUP-SUPABASE.md`; deploy/install: `docs/PUBLICAR.md`.
+Database changes: add a new file in `supabase/migrations/` (never edit an applied one). Demo user with fictitious data: `supabase/demo/semear_demo.sql` (owner runs it in the SQL Editor; it wipes and reseeds only the e-mail set inside). Product presentation: `docs/apresentacao/apresentacao.html` (print to PDF with headless Edge/Chrome; PDFs are gitignored). Owner setup steps: `docs/SETUP-SUPABASE.md`; deploy/install: `docs/PUBLICAR.md`.
 
 ## Security model
 
@@ -40,6 +40,7 @@ Tables: `contas`, `categorias`, `lancamentos`, `importacoes`, `regras_classifica
 
 - **conta** (tipo CORRENTE/DIGITAL/POUPANCA/CARTEIRA/INVESTIMENTO/SALARIO) owns its payment methods (`tem_debito/tem_credito/tem_pix/tem_ted`). The credit card is NOT a separate account — `dia_fechamento/dia_vencimento/limite_credito` live on the account. Allowed `forma_pagamento` per account: `meiosDaConta()` in `src/estado.js`.
 - **Conta salário** (tipo SALARIO, migration 0010): `conta_vinculada_id` (composite FK, set null) points to the account it transfers to. The salary is an ENTRADA in the conta salário in its reference month; the later transfer is "Entre minhas contas" on both sides. In Resumo it is a line inside the linked card (`contasSalarioDe`), not its own card. `listarContas` falls back without the column if the migration is missing.
+- **Encerrar conta** (migration 0011): `contas.encerrada_em` + `ativo = false`; a trigger rejects lancamentos dated after it. Closed accounts leave forms/import (`contasAtivas`) but stay in filters and history; `opcoesContas` always lists the edited entry's own account.
 - **lancamentos:** realized and future in one table (`status` REALIZADO/PREVISTO); `data` is `date`; `valor` is positive `numeric`, sign carried by `tipo` ENTRADA/SAIDA. A DB trigger sets `fatura_mes` (1st day of the **due-date** month) when `forma_pagamento = 'Crédito'`; mirrored in JS as `mesDaFatura()` (`src/lib/calculos.js`) — keep both in sync with SQL `calcular_fatura_mes` (migration 0005). Credit purchases don't move the account balance; they sum into the bill.
 - **categorias:** flat categoria+subcategoria with `icone`, `cor` (palette key, see `CORES`/`.cor-*` CSS), `fora_dos_gastos` (transfers, bill payment, investments — excluded from income/expense totals via `categoriasForaDosGastos()`) and `fixa`. Defaults come from SQL `semear_categorias()`; keyword rules in `REGRAS_PADRAO` reference those names.
 - **Fixa x variável:** `categorias.fixa` is the default per subcategory (seeded by `eh_fixa_padrao()` + insert trigger); `lancamentos.despesa_fixa` overrides it (null = follow category). Always decide through `ehFixa()` (`src/lib/analise.js`).
@@ -74,6 +75,7 @@ SheetJS is installed from `cdn.sheetjs.com` (the npm registry version is outdate
 - `src/servicos/api.js` — the only place that calls Supabase; whitelists writable columns (`apenas()`), paginates past the 1000-row limit (`todos()`), maps Postgres errors to pt-BR messages (`ErroApi`).
 - `src/estado.js` — reference data loaded once after login (perfil, contas, categorias, selected month) plus lookup helpers.
 - `src/ui/combo.js` — searchable category combobox (`campoCategoria`); value lives in a hidden input that fires a bubbling `change`, so it drops in where a `<select>` was. Use it instead of long category `<select>`s.
+- `src/ui/comandoVoz.js` — header mic (Web Speech recognition, pt-BR); phrases map to routes/actions in `comandoPorFala` (`src/lib/comandos.js`, pure, tested). Hidden when the browser has no SpeechRecognition.
 - `src/ui/componentes.js` — `<dialog>` modals (`abrirModal`, `confirmar`), toasts, `<select>` option builders.
 
 ### Screens

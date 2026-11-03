@@ -109,7 +109,7 @@ export function nomeCategoria(id) {
   return c.subcategoria ? `${c.nome} › ${c.subcategoria}` : c.nome;
 }
 
-export const contasAtivas = () => estado.contas.filter((c) => c.ativo);
+export const contasAtivas = () => estado.contas.filter((c) => c.ativo && !c.encerrada_em);
 
 /** Contas salário vinculadas a uma conta (o salário cai nelas e depois é transferido para a conta). */
 export const contasSalarioDe = (contaId) =>

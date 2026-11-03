@@ -210,6 +210,36 @@ function abrirForm(conta, aoSalvar) {
   });
 }
 
+/**
+ * Encerrar: a conta some dos formulários e da carteira, o histórico fica. O banco recusa
+ * lançamentos com data depois do encerramento. Oferece apagar os lançamentos futuros dela.
+ */
+async function encerrarConta(c, saldo, aoSalvar) {
+  const futuros = (await api.listarFuturos().catch(() => [])).filter((l) => l.conta_id === c.id);
+  abrirModal({
+    titulo: `Encerrar ${c.nome}`,
+    textoOk: 'Encerrar conta',
+    perigo: true,
+    corpo: html`<p>A conta deixa de aparecer nos formulários, na importação e no Resumo. Todo o histórico continua nos
+        relatórios e na tela de Lançamentos, e você pode reabri-la depois.</p>
+      ${Math.round(saldo * 100) !== 0
+        ? html`<p class="alerta">O saldo atual desta conta é ${formatarMoeda(saldo)}. Se o dinheiro foi para outra conta, lance a
+            transferência antes de encerrar, para o patrimônio continuar certo.</p>`
+        : ''}
+      <label>Encerrada em <input type="date" name="data" required value="${hojeISO()}" max="2100-12-31" /></label>
+      ${futuros.length
+        ? html`<label class="check"><input type="checkbox" name="apagar_futuros" checked />
+            Excluir ${futuros.length === 1 ? 'o lançamento futuro' : `os ${futuros.length} lançamentos futuros`} desta conta</label>`
+        : ''}`,
+    async aoEnviar(f) {
+      if (f.apagar_futuros === 'on') await api.excluirPrevistosDaConta(c.id);
+      await api.salvarConta({ id: c.id, encerrada_em: f.data, ativo: false });
+      avisar(`Conta ${c.nome} encerrada. O histórico foi mantido.`);
+      await aoSalvar();
+    },
+  });
+}
+
 export function cartaoConta(c, conteudo) {
   return html`<article class="cartao skin-${c.skin || 'padrao'} ${c.ativo ? '' : 'inativo'}">
     <div class="cartao-brilho" aria-hidden="true"></div>
@@ -227,10 +257,10 @@ function desenhar(el) {
   renderizar(
     $('#area-contas', el),
     estado.contas.length
-      ? html`<div class="grade-cartoes">${estado.contas.map((c) =>
+      ? html`<div class="grade-cartoes">${[...estado.contas].sort((a, b) => Boolean(a.encerrada_em) - Boolean(b.encerrada_em)).map((c) =>
           cartaoConta(
             c,
-            html`<p class="cartao-tipo">${TIPOS[c.tipo] || c.tipo}${c.conta_vinculada_id ? `, transfere para ${contaPorId(c.conta_vinculada_id)?.nome || 'outra conta'}` : ''}${c.ativo ? '' : ' (inativa)'}</p>
+            html`<p class="cartao-tipo">${TIPOS[c.tipo] || c.tipo}${c.conta_vinculada_id ? `, transfere para ${contaPorId(c.conta_vinculada_id)?.nome || 'outra conta'}` : ''}${c.encerrada_em ? `, encerrada em ${formatarData(c.encerrada_em)}` : c.ativo ? '' : ' (inativa)'}</p>
               <div class="cartao-saldo"><span>Saldo atual</span><strong class="${(saldos.get(c.id) ?? 0) < 0 ? 'negativo' : ''}">${formatarMoeda(saldos.get(c.id) ?? 0)}</strong>
                 ${c.saldo_inicial_data ? '' : html`<small class="alerta">Informe o saldo inicial para o valor bater com o banco</small>`}</div>
               <ul class="meios">${(c.tipo === 'CARTEIRA' ? ['Dinheiro'] : MEIOS.filter(([k]) => c[k]).map(([, r]) => r)).map(
@@ -241,6 +271,9 @@ function desenhar(el) {
                   ? html`Fecha dia ${c.dia_fechamento}, vence dia ${c.dia_vencimento}${c.limite_credito ? html`<br />Limite ${formatarMoeda(c.limite_credito)}` : ''}`
                   : ''}</span>
                 <span class="cartao-acoes">
+                  ${c.encerrada_em
+                    ? html`<button class="btn btn-secundario btn-pequeno" data-acao="reabrir" data-id="${c.id}">Reabrir</button>`
+                    : html`<button class="btn btn-secundario btn-pequeno" data-acao="encerrar" data-id="${c.id}">Encerrar</button>`}
                   <button class="btn-icone" data-acao="editar" data-id="${c.id}" aria-label="Editar ${c.nome}">✎</button>
                   <button class="btn-icone" data-acao="excluir" data-id="${c.id}" aria-label="Excluir ${c.nome}">✕</button>
                 </span>
@@ -277,6 +310,16 @@ export default {
       const c = estado.contas.find((x) => x.id === b.dataset.id);
       if (!c) return;
       if (b.dataset.acao === 'editar') abrirForm(c, recarregar);
+      if (b.dataset.acao === 'encerrar') return encerrarConta(c, saldos.get(c.id) ?? 0, recarregar);
+      if (b.dataset.acao === 'reabrir' && (await confirmar(`Reabrir a conta ${c.nome}? Ela volta a aceitar lançamentos.`, { perigo: false, textoOk: 'Reabrir' }))) {
+        try {
+          await api.salvarConta({ id: c.id, encerrada_em: null, ativo: true });
+          avisar('Conta reaberta.');
+          await recarregar();
+        } catch (err) {
+          avisarErro(err);
+        }
+      }
       if (b.dataset.acao === 'excluir' && (await confirmar(`Excluir a conta ${c.nome}?`, { textoOk: 'Excluir conta' }))) {
         try {
           await api.excluirConta(c.id);
@@ -285,7 +328,7 @@ export default {
         } catch (err) {
           avisarErro(
             err.message.includes('em uso')
-              ? new Error('Esta conta tem lançamentos. Para escondê-la, edite e desmarque "Conta ativa".')
+              ? new Error('Esta conta tem lançamentos. Para manter o histórico, use "Encerrar".')
               : err,
           );
         }

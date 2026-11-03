@@ -14,6 +14,7 @@ import { estado, aoMudar, aplicarTema, definirMes, carregarReferencias, limparEs
 import { ultimoMesComDados } from './servicos/api.js';
 import { aplicarAparencia, lerAparencia, salvarAparencia } from './lib/aparencia.js';
 import { falarSaudacao, limparVozLocalAntiga } from './servicos/voz.js';
+import { convidarComandoVoz, ligarComandoVoz } from './ui/comandoVoz.js';
 import { $, $$, avisarErro } from './ui/componentes.js';
 import { mostrarLogin, mostrarDefinirSenha, mostrarCodigo, fecharTelaEntrada } from './telas/auth.js';
 import { nivelDaSessao } from './servicos/seguranca.js';
@@ -108,6 +109,12 @@ function ligarCasca() {
     $('#btn-recolher').setAttribute('aria-label', recolher ? 'Abrir menu' : 'Recolher menu');
     $('#btn-recolher').title = recolher ? 'Abrir menu' : 'Recolher menu';
   });
+  ligarComandoVoz($('#btn-voz'), {
+    irPara: (rota) => {
+      window.location.hash = `#/${rota}`;
+    },
+    novo: (status) => abrirFormLancamento({ status, aoSalvar: () => renderizarRota() }),
+  });
   $('#btn-novo').addEventListener('click', () =>
     abrirFormLancamento({
       status: rotaAtual === 'futuros' ? 'PREVISTO' : 'REALIZADO',
@@ -159,6 +166,7 @@ async function entrarNoApp(usuario) {
   reiniciarInatividade();
   if (!estado.contas.length && !window.location.hash) window.location.hash = '#/contas';
   falarSaudacao(estado.perfil?.nome);
+  convidarComandoVoz($('#btn-voz'));
   limparVozLocalAntiga();
   await renderizarRota();
 }

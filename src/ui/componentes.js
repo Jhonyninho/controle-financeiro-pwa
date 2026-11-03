@@ -1,7 +1,7 @@
 // Componentes de interface reutilizáveis: toast, modais, selects, etc.
 
 import { html, renderizar } from '../lib/html.js';
-import { categoriasDoTipo, contasAtivas } from '../estado.js';
+import { categoriasDoTipo, estado } from '../estado.js';
 import { FORMAS_PAGAMENTO } from '../importacao/modelo.js';
 import { iconeCategoria } from '../assets/icons/index.js';
 
@@ -121,8 +121,11 @@ export function confirmar(mensagem, { titulo = 'Confirmar', textoOk = 'Confirmar
 // Opções de <select>
 // ---------------------------------------------------------------------
 export function opcoesContas(selecionada, { incluirVazia = false, rotuloVazio = 'Todas as contas' } = {}) {
+  // filtros (incluirVazia) mostram também as contas encerradas, para consultar o histórico;
+  // na edição, a conta do lançamento aparece mesmo encerrada (senão o salvar trocaria a conta)
+  const lista = estado.contas.filter((c) => (c.ativo && !c.encerrada_em) || c.id === selecionada || (incluirVazia && c.encerrada_em));
   return html`${incluirVazia ? html`<option value="">${rotuloVazio}</option>` : ''}
-    ${contasAtivas().map((c) => html`<option value="${c.id}" ${c.id === selecionada ? 'selected' : ''}>${c.nome}</option>`)}`;
+    ${lista.map((c) => html`<option value="${c.id}" ${c.id === selecionada ? 'selected' : ''}>${c.nome}${c.encerrada_em ? ' (encerrada)' : ''}</option>`)}`;
 }
 
 export function opcoesCategorias(tipo, selecionada, { rotuloVazio = 'Sem categoria' } = {}) {

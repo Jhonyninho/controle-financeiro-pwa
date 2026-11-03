@@ -90,14 +90,14 @@ export async function salvarNomePerfil(id, nome) {
 // ---------------------------------------------------------------------
 const CAMPOS_CONTA = [
   'nome', 'tipo', 'bandeira', 'skin', 'dia_fechamento', 'dia_vencimento', 'limite_credito', 'ativo', 'mostrar_resumo', 'ordem',
-  'tem_debito', 'tem_credito', 'tem_pix', 'tem_ted', 'saldo_inicial', 'saldo_inicial_data', 'conta_vinculada_id',
+  'tem_debito', 'tem_credito', 'tem_pix', 'tem_ted', 'saldo_inicial', 'saldo_inicial_data', 'conta_vinculada_id', 'encerrada_em',
 ];
 
 export async function listarContas() {
   const ler = (campos) => supabase.from('contas').select('id, ' + campos.join(', ')).order('ordem').order('nome');
   const r = await ler(CAMPOS_CONTA);
-  // banco ainda sem a migração da conta salário (coluna inexistente): lê sem o vínculo
-  if (r.error?.code === '42703') return ok(await ler(CAMPOS_CONTA.filter((c) => c !== 'conta_vinculada_id')));
+  // banco sem as migrações mais novas (coluna inexistente): lê sem as colunas novas
+  if (r.error?.code === '42703') return ok(await ler(CAMPOS_CONTA.filter((c) => !['conta_vinculada_id', 'encerrada_em'].includes(c))));
   return ok(r);
 }
 
@@ -359,4 +359,9 @@ export async function atualizarPrevistos(alteracoes) {
       ),
     );
   }
+}
+
+/** Exclui os lançamentos futuros (PREVISTO) de uma conta — usado ao encerrá-la. */
+export async function excluirPrevistosDaConta(contaId) {
+  ok(await supabase.from('lancamentos').delete().eq('status', 'PREVISTO').eq('conta_id', contaId));
 }

@@ -154,7 +154,10 @@ function conteudoCartao(r, { mes, fim, livre }, saldoFim, saldos = new Map()) {
     </div>
     ${contasSalarioDe(r.conta.id).map((cs) => {
       const s = saldos.get(cs.id) ?? 0;
-      return html`<p class="cartao-salario"><span>${cs.nome}</span><strong>${s > 0 ? `${formatarMoeda(s)} a transferir` : formatarMoeda(s)}</strong></p>`;
+      return html`<div class="cartao-salario">
+        <p><span>${cs.nome}</span><strong>${s > 0 ? `${formatarMoeda(s)} a transferir` : formatarMoeda(s)}</strong></p>
+        <button type="button" class="btn-link" data-salario-recebido="${cs.id}">Salário caiu? Registrar</button>
+      </div>`;
     })}
     ${f
       ? html`<div class="cartao-fatura">
@@ -419,6 +422,17 @@ export default {
       }
       if (e.target.closest('[data-acao=novo]')) {
         return abrirFormLancamento({ status: 'REALIZADO', aoSalvar: () => window.dispatchEvent(new Event('hashchange')) });
+      }
+      // salário que cai direto na conta salário (não vem em extrato importado)
+      const salario = e.target.closest('[data-salario-recebido]');
+      if (salario) {
+        e.stopPropagation();
+        const cat = estado.categorias.find((c) => c.tipo === 'ENTRADA' && c.nome === 'Salário' && c.subcategoria === 'Salário mensal')
+          || estado.categorias.find((c) => c.tipo === 'ENTRADA' && c.nome === 'Salário');
+        return abrirFormLancamento({
+          inicial: { tipo: 'ENTRADA', conta_id: salario.dataset.salarioRecebido, descricao: 'Salário', categoria_id: cat?.id || null, forma_pagamento: 'TED' },
+          aoSalvar: () => window.dispatchEvent(new Event('hashchange')),
+        });
       }
       const pagar = e.target.closest('[data-pagar]');
       if (pagar) {

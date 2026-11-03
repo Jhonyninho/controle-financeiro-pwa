@@ -18,9 +18,10 @@ const MAX_REPETICOES = 60;
  * @param {object} p
  * @param {object} [p.lancamento] existente (edição) — sem ele, cria novo
  * @param {'REALIZADO'|'PREVISTO'} [p.status]
+ * @param {object} [p.inicial] valores iniciais de um lançamento novo (ex.: salário na conta salário)
  * @param {() => void} p.aoSalvar
  */
-export function abrirFormLancamento({ lancamento = null, status = 'REALIZADO', aoSalvar }) {
+export function abrirFormLancamento({ lancamento = null, status = 'REALIZADO', inicial = null, aoSalvar }) {
   if (!contasAtivas().length) {
     avisar('Cadastre uma conta antes de lançar.', 'erro');
     window.location.hash = '#/contas';
@@ -30,6 +31,7 @@ export function abrirFormLancamento({ lancamento = null, status = 'REALIZADO', a
   const contaInicial = contasAtivas()[0];
   const l = lancamento || {
     tipo: 'SAIDA', data: hojeISO(), status, conta_id: contaInicial.id, forma_pagamento: meiosDaConta(contaInicial)[0],
+    ...inicial,
   };
   const edicao = Boolean(lancamento);
   const previsto = l.status === 'PREVISTO';
