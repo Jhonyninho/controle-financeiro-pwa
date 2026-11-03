@@ -345,3 +345,10 @@ export async function salvarMeta(meta) {
 export async function excluirMeta(id) {
   ok(await supabase.from('metas').delete().eq('id', id));
 }
+
+/** Novo valor para vários lançamentos futuros (só altera quem ainda é PREVISTO). */
+export async function atualizarValorPrevistos(ids, valor) {
+  for (let i = 0; i < ids.length; i += 100) {
+    ok(await supabase.from('lancamentos').update({ valor }).eq('status', 'PREVISTO').in('id', ids.slice(i, i + 100)));
+  }
+}

@@ -5,11 +5,11 @@ import { html, renderizar } from '../lib/html.js';
 import { parseValor, formatarData, formatarMoeda, normalizarTexto } from '../lib/formatos.js';
 import { hojeISO, nomeMes, somarMesesData } from '../lib/meses.js';
 import { mesDaFatura } from '../lib/calculos.js';
-import { extrairParcela, gerarParcelas } from '../importacao/previstos.js';
+import { extrairParcela, gerarParcelas, proximosParecidos } from '../importacao/previstos.js';
 import { chaveDescricao } from '../importacao/classificador.js';
 import { categoriaPorId, contaPorId, contasAtivas, meiosDaConta } from '../estado.js';
 import { $, abrirModal, avisar, opcoesContas, opcoesFormaPagamento } from '../ui/componentes.js';
-import { abrirReplicarCategoria, saoIguais } from '../ui/replicar.js';
+import { abrirReplicarCategoria, abrirSelecaoLancamentos, saoIguais } from '../ui/replicar.js';
 import { campoCategoria, trocarTipoCombo } from '../ui/combo.js';
 
 const MAX_REPETICOES = 60;
@@ -159,11 +159,47 @@ export function abrirFormLancamento({ lancamento = null, status = 'REALIZADO', a
       aoSalvar?.();
 
       // categoria escolhida/alterada: oferece aplicar aos lançamentos iguais (depois que este modal fechar)
-      if (base.categoria_id && base.categoria_id !== categoriaOriginal) {
-        setTimeout(() => oferecerReplicar({ ...base, id: l.id }, aoSalvar), 0);
+      const categoriaMudou = base.categoria_id && base.categoria_id !== categoriaOriginal;
+      const replicarCategoria = () => categoriaMudou && oferecerReplicar({ ...base, id: l.id }, aoSalvar);
+      // previsto com valor novo: oferece levar o valor para os próximos meses da mesma despesa
+      if (edicao && previsto && Math.round(base.valor * 100) !== Math.round(Number(l.valor) * 100)) {
+        setTimeout(() => oferecerNovoValor({ ...base, id: l.id }, l, aoSalvar, replicarCategoria), 0);
+      } else if (categoriaMudou) {
+        setTimeout(replicarCategoria, 0);
       }
     },
   });
+}
+
+/** Previsto editado: oferece aplicar o novo valor aos próximos lançamentos futuros da mesma despesa. */
+async function oferecerNovoValor(editado, original, aoSalvar, depois) {
+  try {
+    const proximos = proximosParecidos(editado, original.serie_id || null, await api.listarFuturos()).filter(
+      (p) => Math.round(Number(p.valor) * 100) !== Math.round(editado.valor * 100),
+    );
+    if (!proximos.length) return depois();
+    abrirSelecaoLancamentos({
+      titulo: 'Aplicar o novo valor aos próximos?',
+      intro: html`<p class="replicar-intro">
+        ${proximos.length === 1 ? 'Há mais 1 lançamento futuro' : `Há mais ${proximos.length} lançamentos futuros`} desta despesa.
+        Marque os que também devem passar para <strong>${formatarMoeda(editado.valor)}</strong>.
+      </p>`,
+      itens: proximos.map((p) => ({ ...p, chave: p.id, nota: `hoje ${formatarMoeda(p.valor)}` })),
+      textoOk: (n) => (n ? `Aplicar a ${n}` : 'Nada selecionado'),
+      async aoConfirmar(ids) {
+        if (ids.length) {
+          await api.atualizarValorPrevistos(ids, editado.valor);
+          avisar(`Novo valor aplicado a mais ${ids.length} lançamento(s) futuro(s).`);
+          aoSalvar?.();
+        }
+        setTimeout(depois, 0);
+      },
+      aoCancelar: () => setTimeout(depois, 0),
+    });
+  } catch (e) {
+    console.error(e);
+    depois();
+  }
 }
 
 /** Busca no banco lançamentos com a mesma descrição e oferece aplicar a categoria. */

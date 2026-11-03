@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { conciliarPrevistos, descricaoSemParcela, extrairParcela, gerarParcelas, planejarFixas } from '../src/importacao/previstos.js';
+import { conciliarPrevistos, descricaoSemParcela, extrairParcela, gerarParcelas, planejarFixas, proximosParecidos } from '../src/importacao/previstos.js';
 
 const prev = (id, data, valor, descricao, extra = {}) => ({ id, data, valor, descricao, tipo: 'SAIDA', conta_id: 'bb', status: 'PREVISTO', ...extra });
 const item = (data, valor, descricao, extra = {}) => ({ data, valor, descricao, tipo: 'SAIDA', erros: [], ...extra });
@@ -102,5 +102,23 @@ describe('conciliarPrevistos com previsão pelo nome da categoria', () => {
     expect(conciliarPrevistos(itens, previstos, 'bb').size).toBe(0); // sem saber a categoria, não arrisca
     const r = conciliarPrevistos(itens, previstos, 'bb', 7, () => 'luz');
     expect(r.get(0)?.id).toBe('p1');
+  });
+});
+
+describe('proximosParecidos (replicar novo valor)', () => {
+  const editado = { id: 'e', data: '2026-11-05', valor: 1900, descricao: 'Moradia › Aluguel', categoria_id: 'aluguel', tipo: 'SAIDA', conta_id: 'bb' };
+
+  it('pega só os próximos da mesma série, categoria ou descrição', () => {
+    const previstos = [
+      prev('antes', '2026-10-05', 1800, 'Moradia › Aluguel', { categoria_id: 'aluguel' }),
+      prev('e', '2026-11-05', 1800, 'Moradia › Aluguel', { categoria_id: 'aluguel' }),
+      prev('cat', '2027-01-05', 1800, 'ALUGUEL APTO', { categoria_id: 'aluguel' }),
+      prev('serie', '2026-12-05', 1800, 'outro nome', { serie_id: 's1', conta_id: 'nu' }),
+      prev('desc', '2027-02-05', 1800, 'Moradia › Aluguel'),
+      prev('outraConta', '2026-12-05', 1800, 'Moradia › Aluguel', { categoria_id: 'aluguel', conta_id: 'nu' }),
+      prev('parcela', '2026-12-05', 300, 'LOJA (2/5)', { categoria_id: 'aluguel', serie_tipo: 'PARCELA', serie_id: 's9' }),
+      prev('luz', '2026-12-08', 190, 'Moradia › Energia', { categoria_id: 'luz' }),
+    ];
+    expect(proximosParecidos(editado, 's1', previstos).map((p) => p.id)).toEqual(['serie', 'cat', 'desc']);
   });
 });

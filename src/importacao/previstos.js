@@ -174,3 +174,24 @@ export function planejarFixas(realizados, previstos, ehFixa, hoje, meses = 3, no
   }
   return saida.sort((a, b) => (a.data < b.data ? -1 : 1));
 }
+
+/**
+ * Lançamentos futuros "da mesma conta fixa" depois de um previsto editado, para replicar
+ * o novo valor: mesma série, ou mesma conta + tipo e (mesma categoria ou mesma descrição).
+ * Parcelas de outra série ficam de fora (duas compras parceladas podem ter a mesma categoria).
+ * @param {object} editado previsto já com os campos novos (id, data, conta_id, tipo, categoria_id, descricao)
+ * @param {string|null} serieId série original do lançamento editado
+ * @param {object[]} previstos lançamentos PREVISTO existentes
+ */
+export function proximosParecidos(editado, serieId, previstos) {
+  const chave = chaveDescricao(editado.descricao);
+  return previstos
+    .filter((p) => {
+      if (p.status !== 'PREVISTO' || p.id === editado.id || p.data <= editado.data) return false;
+      if (serieId && p.serie_id === serieId) return true;
+      if (p.conta_id !== editado.conta_id || p.tipo !== editado.tipo || p.serie_tipo === 'PARCELA') return false;
+      const mesmaCategoria = Boolean(editado.categoria_id && p.categoria_id === editado.categoria_id);
+      return mesmaCategoria || (chave.length >= 3 && chaveDescricao(p.descricao) === chave);
+    })
+    .sort((a, b) => (a.data < b.data ? -1 : 1));
+}
