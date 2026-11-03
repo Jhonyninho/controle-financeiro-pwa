@@ -6,7 +6,7 @@ import { html, renderizar } from '../lib/html.js';
 import { formatarData, formatarMoeda } from '../lib/formatos.js';
 import { deslocarMes, hojeISO, limitesMes, nomeMes, somarDias } from '../lib/meses.js';
 import { agruparPorCategoriaMae, porCategoria, resumoPorConta, saldoPrevisto, totais, variacao } from '../lib/calculos.js';
-import { intervaloAtual, estado, categoriaPorId, categoriasForaDosGastos, contaPorId, definirMes } from '../estado.js';
+import { intervaloAtual, estado, categoriaPorId, categoriasForaDosGastos, contaPorId, contasSalarioDe, definirMes } from '../estado.js';
 import { $, chipCategoria, estadoVazio } from '../ui/componentes.js';
 import { icone } from '../assets/icons/index.js';
 import { lerAparencia } from '../lib/aparencia.js';
@@ -144,7 +144,7 @@ function patrimonio(contas, saldos, faturasAbertas, fim) {
   </section>`;
 }
 
-function conteudoCartao(r, { mes, fim, livre }, saldoFim) {
+function conteudoCartao(r, { mes, fim, livre }, saldoFim, saldos = new Map()) {
   const f = r.fatura;
   return html`
     <div class="cartao-saldo">
@@ -152,6 +152,10 @@ function conteudoCartao(r, { mes, fim, livre }, saldoFim) {
       <strong class="${saldoFim < 0 ? 'negativo' : ''}">${formatarMoeda(saldoFim)}</strong>
       <small>Movimento ${livre ? 'no período' : 'no mês'} ${r.saldo >= 0 ? '+' : ''}${formatarMoeda(r.saldo)}</small>
     </div>
+    ${contasSalarioDe(r.conta.id).map((cs) => {
+      const s = saldos.get(cs.id) ?? 0;
+      return html`<p class="cartao-salario"><span>${cs.nome}</span><strong>${s > 0 ? `${formatarMoeda(s)} a transferir` : formatarMoeda(s)}</strong></p>`;
+    })}
     ${f
       ? html`<div class="cartao-fatura">
           <div class="cartao-fatura-linha">
@@ -253,7 +257,8 @@ export default {
     const tAnt = totais(doAnterior, ignorar);
     const pendentes = realizados.filter((l) => !l.categoria_id).length;
 
-    const contas = estado.contas.filter((c) => c.ativo && c.mostrar_resumo);
+    // conta salário vinculada não vira cartão: aparece como linha no cartão da conta para onde transfere
+    const contas = estado.contas.filter((c) => c.ativo && c.mostrar_resumo && !(c.tipo === 'SALARIO' && contaPorId(c.conta_vinculada_id)?.ativo));
     const porConta = resumoPorConta(contas, comFaturas, { inicio, fim });
     const grupos = agruparPorCategoriaMae(porCategoria(realizados, 'SAIDA', ignorar), categoriaPorId);
 
@@ -327,7 +332,7 @@ export default {
           <section class="inicio-contas">
             <div class="secao-titulo"><h3>Minhas contas</h3><a class="btn-link" href="#/contas">Gerenciar</a></div>
             ${porConta.length
-              ? html`<div class="carteira" data-carteira>${porConta.map((r) => cartaoConta(r.conta, conteudoCartao(r, { mes, fim, livre }, saldosFim.get(r.conta.id) ?? 0)))}</div>
+              ? html`<div class="carteira" data-carteira>${porConta.map((r) => cartaoConta(r.conta, conteudoCartao(r, { mes, fim, livre }, saldosFim.get(r.conta.id) ?? 0, saldosFim)))}</div>
                   <button class="carteira-alca" data-carteira-alca aria-expanded="false"><i aria-hidden="true"></i><span>Ver os cartões</span></button>`
               : estadoVazio('Nenhuma conta aparece no resumo ainda.', html`<a class="btn btn-secundario" href="#/contas">Cadastrar conta</a>`)}
           </section>

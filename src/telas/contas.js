@@ -5,7 +5,7 @@ import * as api from '../servicos/api.js';
 import { html, renderizar } from '../lib/html.js';
 import { formatarData, formatarMoeda, parseValor } from '../lib/formatos.js';
 import { hojeISO } from '../lib/meses.js';
-import { estado, recarregarContas } from '../estado.js';
+import { contaPorId, estado, recarregarContas } from '../estado.js';
 import { $, abrirModal, avisar, avisarErro, confirmar, estadoVazio } from '../ui/componentes.js';
 
 export const SKINS = {
@@ -18,6 +18,7 @@ export const TIPOS = {
   POUPANCA: 'Poupança',
   CARTEIRA: 'Carteira (dinheiro)',
   INVESTIMENTO: 'Investimento',
+  SALARIO: 'Conta salário',
 };
 const MEIOS = [
   ['tem_debito', 'Débito'],
@@ -73,6 +74,19 @@ function abrirForm(conta, aoSalvar) {
         )}
       </fieldset>
 
+      <section class="campo-largo grade-form painel-salario" ${c.tipo === 'SALARIO' ? '' : 'hidden'}>
+        <label class="campo-largo">Transfere o salário para
+          <select name="conta_vinculada_id">
+            <option value="">Escolha a conta</option>
+            ${estado.contas
+              .filter((x) => x.id !== c.id && x.tipo !== 'SALARIO' && x.ativo)
+              .map((x) => html`<option value="${x.id}" ${x.id === c.conta_vinculada_id ? 'selected' : ''}>${x.nome}</option>`)}
+          </select>
+        </label>
+        <p class="campo-largo dica">O salário entra aqui no mês em que foi pago e conta como receita desse mês. Quando você transfere para a
+          conta escolhida, a transferência não conta como receita de novo. Ao importar o extrato dessa conta, o app pergunta a que mês o salário se refere.</p>
+      </section>
+
       <fieldset class="campo-largo opcoes-pilula area-meios" ${c.tipo === 'CARTEIRA' ? 'hidden' : ''} aria-label="Meios de pagamento">
         <legend>Meios de pagamento desta conta</legend>
         ${MEIOS.map(([campo, rotulo]) => html`<label><input type="checkbox" name="${campo}" ${c[campo] ? 'checked' : ''} /><span>${rotulo}</span></label>`)}
@@ -123,6 +137,7 @@ function abrirForm(conta, aoSalvar) {
         const tipo = $('[name=tipo]:checked', form)?.value;
         const carteira = tipo === 'CARTEIRA';
         $('.area-meios', form).hidden = carteira;
+        $('.painel-salario', form).hidden = tipo !== 'SALARIO';
         $('.painel-credito', form).hidden = carteira || !$('[name=tem_credito]', form).checked;
       };
       form.addEventListener('change', (e) => {
@@ -136,6 +151,12 @@ function abrirForm(conta, aoSalvar) {
 
       if (!carteira && !Object.values(meios).some(Boolean)) {
         avisar('Marque pelo menos um meio de pagamento.', 'erro');
+        return false;
+      }
+
+      const salario = f.tipo === 'SALARIO';
+      if (salario && !f.conta_vinculada_id) {
+        avisar('Escolha para qual conta o salário é transferido.', 'erro');
         return false;
       }
 
@@ -180,6 +201,8 @@ function abrirForm(conta, aoSalvar) {
         ordem: conta?.ordem ?? (estado.contas.length + 1) * 10,
         ativo: f.ativo === 'on',
         mostrar_resumo: f.mostrar_resumo === 'on',
+        // só envia o vínculo quando o banco já tem a coluna (conta salário, ou conta lida com o campo)
+        ...(salario || (conta && 'conta_vinculada_id' in conta) ? { conta_vinculada_id: salario ? f.conta_vinculada_id : null } : {}),
       });
       avisar(conta ? 'Conta atualizada.' : 'Conta criada.');
       await aoSalvar();
@@ -207,7 +230,7 @@ function desenhar(el) {
       ? html`<div class="grade-cartoes">${estado.contas.map((c) =>
           cartaoConta(
             c,
-            html`<p class="cartao-tipo">${TIPOS[c.tipo] || c.tipo}${c.ativo ? '' : ' (inativa)'}</p>
+            html`<p class="cartao-tipo">${TIPOS[c.tipo] || c.tipo}${c.conta_vinculada_id ? `, transfere para ${contaPorId(c.conta_vinculada_id)?.nome || 'outra conta'}` : ''}${c.ativo ? '' : ' (inativa)'}</p>
               <div class="cartao-saldo"><span>Saldo atual</span><strong class="${(saldos.get(c.id) ?? 0) < 0 ? 'negativo' : ''}">${formatarMoeda(saldos.get(c.id) ?? 0)}</strong>
                 ${c.saldo_inicial_data ? '' : html`<small class="alerta">Informe o saldo inicial para o valor bater com o banco</small>`}</div>
               <ul class="meios">${(c.tipo === 'CARTEIRA' ? ['Dinheiro'] : MEIOS.filter(([k]) => c[k]).map(([, r]) => r)).map(

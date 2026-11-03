@@ -90,11 +90,15 @@ export async function salvarNomePerfil(id, nome) {
 // ---------------------------------------------------------------------
 const CAMPOS_CONTA = [
   'nome', 'tipo', 'bandeira', 'skin', 'dia_fechamento', 'dia_vencimento', 'limite_credito', 'ativo', 'mostrar_resumo', 'ordem',
-  'tem_debito', 'tem_credito', 'tem_pix', 'tem_ted', 'saldo_inicial', 'saldo_inicial_data',
+  'tem_debito', 'tem_credito', 'tem_pix', 'tem_ted', 'saldo_inicial', 'saldo_inicial_data', 'conta_vinculada_id',
 ];
 
 export async function listarContas() {
-  return ok(await supabase.from('contas').select('id, ' + CAMPOS_CONTA.join(', ')).order('ordem').order('nome'));
+  const ler = (campos) => supabase.from('contas').select('id, ' + campos.join(', ')).order('ordem').order('nome');
+  const r = await ler(CAMPOS_CONTA);
+  // banco ainda sem a migração da conta salário (coluna inexistente): lê sem o vínculo
+  if (r.error?.code === '42703') return ok(await ler(CAMPOS_CONTA.filter((c) => c !== 'conta_vinculada_id')));
+  return ok(r);
 }
 
 export async function salvarConta(conta) {

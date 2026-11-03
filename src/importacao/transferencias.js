@@ -105,3 +105,35 @@ export function conciliarTransferencias(lancamentos, maxDias = 3) {
   const pareados = new Set(pares.flatMap(([a, b]) => [a.id, b.id]));
   return { pares, semPar: lancamentos.filter((l) => !pareados.has(l.id)) };
 }
+
+/**
+ * Conta salário: a entrada importada na conta vinculada veio da conta salário.
+ * Monta o que falta gravar na conta salário para os dois lados fecharem:
+ *  - a saída da transferência (mesma data e valor da entrada importada)
+ *  - o salário no mês a que ele se refere (`dataSalario`), contando como receita daquele mês
+ * Não repete o que já existe: salário de mesmo valor no mês de referência, ou saída de mesmo
+ * valor até 3 dias da transferência.
+ * @param {{data:string, valor:number}} item entrada importada na conta vinculada
+ * @param {{contaSalario:object, contaDestino:object, dataSalario:string, existentes:object[],
+ *   catTransferencia?:string|null, catSalario?:string|null}} p existentes = lançamentos da conta salário
+ * @returns {object[]} lançamentos REALIZADO a criar
+ */
+export function lancamentosDaContaSalario(item, { contaSalario, contaDestino, dataSalario, existentes, catTransferencia = null, catSalario = null }) {
+  const c = (v) => Math.round(Number(v) * 100);
+  const daConta = existentes.filter((l) => l.conta_id === contaSalario.id && l.status !== 'PREVISTO' && c(l.valor) === c(item.valor));
+  const dias = (a, b) => Math.abs(Date.parse(a) - Date.parse(b)) / 86400000;
+  const saida = [];
+  if (!daConta.some((l) => l.tipo === 'ENTRADA' && l.data.slice(0, 7) === dataSalario.slice(0, 7))) {
+    saida.push({
+      conta_id: contaSalario.id, tipo: 'ENTRADA', status: 'REALIZADO', valor: Number(item.valor),
+      data: dataSalario, descricao: 'Salário', categoria_id: catSalario,
+    });
+  }
+  if (!daConta.some((l) => l.tipo === 'SAIDA' && dias(l.data, item.data) <= 3)) {
+    saida.push({
+      conta_id: contaSalario.id, tipo: 'SAIDA', status: 'REALIZADO', valor: Number(item.valor),
+      data: item.data, descricao: `Transferência para ${contaDestino.nome}`.slice(0, 200), categoria_id: catTransferencia,
+    });
+  }
+  return saida;
+}

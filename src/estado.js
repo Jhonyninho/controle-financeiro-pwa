@@ -111,6 +111,10 @@ export function nomeCategoria(id) {
 
 export const contasAtivas = () => estado.contas.filter((c) => c.ativo);
 
+/** Contas salário vinculadas a uma conta (o salário cai nelas e depois é transferido para a conta). */
+export const contasSalarioDe = (contaId) =>
+  estado.contas.filter((c) => c.ativo && c.tipo === 'SALARIO' && c.conta_vinculada_id === contaId);
+
 /** Formas de pagamento disponíveis numa conta, conforme os meios habilitados nela. */
 export function meiosDaConta(conta) {
   if (!conta) return ['Outro'];

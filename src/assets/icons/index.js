@@ -15,7 +15,7 @@ export const ICONES_CATEGORIA = [
 
 export const ICONE_TIPO_CONTA = {
   CORRENTE: 'conta-corrente', DIGITAL: 'conta-digital', POUPANCA: 'conta-poupanca',
-  CARTEIRA: 'conta-carteira', INVESTIMENTO: 'conta-investimento', CARTAO: 'conta-cartao',
+  CARTEIRA: 'conta-carteira', SALARIO: 'conta-corrente', INVESTIMENTO: 'conta-investimento', CARTAO: 'conta-cartao',
 };
 
 const VALIDO = /^[a-z]+-[a-z]+$/;

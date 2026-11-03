@@ -5,19 +5,19 @@ import { html, renderizar } from '../lib/html.js';
 import { formatarData, formatarMoeda, normalizarTexto } from '../lib/formatos.js';
 import { abrirReplicarCategoria, abrirSelecaoLancamentos, saoIguais } from '../ui/replicar.js';
 import { campoCategoria } from '../ui/combo.js';
-import { conciliarTransferencias, encontrarPares, mencionaTitular, partesDoNome } from '../importacao/transferencias.js';
-import { nomeMes, somarDias } from '../lib/meses.js';
+import { conciliarTransferencias, encontrarPares, lancamentosDaContaSalario, mencionaTitular, partesDoNome } from '../importacao/transferencias.js';
+import { deslocarMes, limitesMes, nomeMes, somarDias } from '../lib/meses.js';
 import { gerarModelo, promptIA } from '../importacao/modelo.js';
 import { lerPlanilha, ErroImportacao } from '../importacao/leitor.js';
 import { conciliarPrevistos } from '../importacao/previstos.js';
 import { criarClassificador, chaveDescricao } from '../importacao/classificador.js';
-import { estado, categoriaPorId, contaPorId, contasAtivas, definirMes } from '../estado.js';
+import { estado, categoriaPorId, contaPorId, contasAtivas, contasSalarioDe, definirMes } from '../estado.js';
 import {
-  $, avisar, avisarErro, baixarArquivo, comCarregando, confirmar, estadoVazio, opcoesCategorias, opcoesContas,
+  $, $$, abrirModal, avisar, avisarErro, baixarArquivo, comCarregando, confirmar, estadoVazio, opcoesCategorias, opcoesContas,
 } from '../ui/componentes.js';
 
 const POR_PAGINA = 100;
-const ORIGENS = { previsto: 'do lançamento previsto', transferencia: 'transferência entre suas contas', manual: 'escolhida por você', planilha: 'sugerida pela IA', regra: 'pela sua regra', historico: 'pelo seu histórico', padrao: 'por palavra-chave' };
+const ORIGENS = { contaSalario: 'salário vindo da conta salário', previsto: 'do lançamento previsto', transferencia: 'transferência entre suas contas', manual: 'escolhida por você', planilha: 'sugerida pela IA', regra: 'pela sua regra', historico: 'pelo seu histórico', padrao: 'por palavra-chave' };
 
 let previa = null; // { contaId, arquivo, itens[] }
 let pagina = 0;
@@ -155,6 +155,76 @@ function perguntarSalario({ itens, aoConfirmar, aoCancelar }) {
   });
 }
 
+/**
+ * Conta salário vinculada: a entrada de você mesmo sem par veio da conta salário? E de que mês
+ * é esse salário? A entrada vira transferência entre contas (não soma como receita de novo) e,
+ * ao importar, a conta salário recebe o salário no mês de referência e a saída da transferência.
+ * @param {{itens:{chave:number,data:string,descricao:string,valor:number}[], contaSalario:object,
+ *   aoConfirmar:(escolhas:{chave:number,dataSalario:string}[]) => void}} p
+ */
+function perguntarContaSalario({ itens, contaSalario, aoConfirmar }) {
+  const opcoesMes = (data) => {
+    const mes = data.slice(0, 7);
+    return [0, -1, -2, -3].map((d) => deslocarMes(mes, d)).map(
+      (m, i) => html`<option value="${m}" ${i === 1 ? 'selected' : ''}>${nomeMes(m)}</option>`,
+    );
+  };
+  abrirModal({
+    titulo: 'Salário vindo da conta salário?',
+    textoOk: 'Confirmar',
+    corpo: html`<p class="replicar-intro">
+        Estas entradas vieram de você mesmo e não têm saída correspondente em outra conta. Marque as que são o salário
+        transferido de <strong>${contaSalario.nome}</strong> e escolha a que mês o salário se refere: ele conta como receita
+        daquele mês, e esta transferência não soma de novo.
+      </p>
+      <ul class="replicar-lista lista-salario">${itens.map(
+        (it, k) => html`<li>
+          <label class="replicar-item">
+            <input type="checkbox" name="sel" value="${k}" checked />
+            <span class="replicar-data">${formatarData(it.data).slice(0, 5)}</span>
+            <span class="replicar-desc">${it.descricao}</span>
+            <strong class="positivo">${formatarMoeda(it.valor)}</strong>
+          </label>
+          <label class="salario-mes">Salário de <select name="mes-${k}">${opcoesMes(it.data)}</select></label>
+        </li>`,
+      )}</ul>`,
+    async aoEnviar(_, form) {
+      const escolhas = $$('[name=sel]:checked', form).map((cb) => {
+        const it = itens[Number(cb.value)];
+        const mes = $(`[name="mes-${cb.value}"]`, form).value;
+        // mesmo mês da transferência: o salário entrou na data dela; mês anterior: último dia daquele mês
+        return { chave: it.chave, dataSalario: mes === it.data.slice(0, 7) ? it.data : limitesMes(mes).fim };
+      });
+      aoConfirmar(escolhas);
+    },
+  });
+}
+
+/** Grava na conta salário o salário (mês de referência) e a saída da transferência dos itens importados. */
+async function registrarNaContaSalario(itens, contaDestino) {
+  const comSalario = itens.filter((i) => i.contaSalario);
+  if (!comSalario.length) return 0;
+  const datas = comSalario.flatMap((i) => [i.data, i.contaSalario.dataSalario]).sort();
+  const vizinhos = await api.lancamentosEntreDatas(`${datas[0].slice(0, 7)}-01`, somarDias(datas.at(-1), 3));
+  const novos = [];
+  for (const i of comSalario) {
+    const contaSalario = contaPorId(i.contaSalario.id);
+    if (!contaSalario) continue;
+    novos.push(
+      ...lancamentosDaContaSalario(i, {
+        contaSalario,
+        contaDestino,
+        dataSalario: i.contaSalario.dataSalario,
+        existentes: [...vizinhos, ...novos],
+        catTransferencia: categoriaTransferencia('SAIDA')?.id || null,
+        catSalario: categoriaSalario()?.id || null,
+      }),
+    );
+  }
+  if (novos.length) await api.criarLancamentos(novos);
+  return novos.length;
+}
+
 /** Revisão dos lançamentos já importados: entradas de você mesmo sem par em outra conta. */
 export async function revisarSalarioImportado(aoConcluir) {
   const ids = estado.categorias.filter((c) => c.nome === 'Transferências' && c.subcategoria === 'Entre minhas contas').map((c) => c.id);
@@ -231,10 +301,31 @@ async function processarArquivo(el, arquivo, contaId, ehFatura) {
   desenharPrevia(el);
   if (ignoradas) avisar(`${ignoradas} linha(s) de saldo/total foram ignoradas.`, 'info');
 
+  const salarioCat = categoriaSalario();
+  const contaSalario = contasSalarioDe(contaId)[0] || null;
   const daProprioTitular = itens
     .map((it, i) => ({ it, i }))
-    .filter(({ it }) => it.tipo === 'ENTRADA' && it.origem === 'transferencia' && !it.par && it.incluir);
-  if (daProprioTitular.length) {
+    .filter(({ it }) => it.tipo === 'ENTRADA' && !it.par && it.incluir && (it.origem === 'transferencia'
+      // com conta salário, a regra "isto é salário" de antes também passa pela pergunta
+      || (contaSalario && salarioCat && it.categoria_id === salarioCat.id && mencionaTitular(it.descricao, partes))));
+  if (daProprioTitular.length && contaSalario) {
+    perguntarContaSalario({
+      contaSalario,
+      itens: daProprioTitular.map(({ it, i }) => ({ chave: i, data: it.data, descricao: it.descricao, valor: it.valor })),
+      aoConfirmar(escolhas) {
+        const transf = categoriaTransferencia('ENTRADA');
+        for (const { chave, dataSalario } of escolhas) {
+          Object.assign(previa.itens[chave], {
+            categoria_id: transf?.id || null,
+            origem: 'contaSalario',
+            sugerida: transf?.id || null,
+            contaSalario: { id: contaSalario.id, dataSalario },
+          });
+        }
+        desenharPrevia(el);
+      },
+    });
+  } else if (daProprioTitular.length) {
     perguntarSalario({
       itens: daProprioTitular.map(({ it, i }) => ({ chave: i, data: it.data, descricao: it.descricao, valor: it.valor, tipo: it.tipo, nota: 'sem saída correspondente' })),
       aoConfirmar(indices, salario) {
@@ -281,6 +372,13 @@ async function confirmarImportacao(el, botao) {
     for (const tipo of ['ENTRADA', 'SAIDA']) {
       if (espelhos[tipo].length) await api.atualizarCategoria(espelhos[tipo], categoriaTransferencia(tipo).id);
     }
+
+    // salário vindo da conta salário: salário no mês de referência + saída da transferência lá
+    const naContaSalario = await registrarNaContaSalario(
+      selecionados.filter((i) => i.categoria_id && i.origem === 'contaSalario'),
+      contaPorId(previa.contaId),
+    );
+    if (naContaSalario) avisar(`Conta salário atualizada: ${naContaSalario} lançamento(s) criado(s).`, 'info');
 
     // mostra o mês importado no Resumo/Lançamentos
     const ultimaData = selecionados.map((i) => i.data).sort().at(-1);
