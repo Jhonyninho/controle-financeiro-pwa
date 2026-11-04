@@ -17,7 +17,7 @@
 create or replace function pg_temp.cat(p_user uuid, p_tipo text, p_nome text, p_sub text)
 returns uuid language sql as $$
   select id from public.categorias
-   where user_id = p_user and tipo = p_tipo and nome = p_nome and subcategoria = p_sub
+   where user_id = p_user and tipo = p_tipo::public.tipo_lancamento and nome = p_nome and subcategoria = p_sub
    limit 1
 $$;
 
@@ -35,7 +35,7 @@ create or replace function pg_temp.lanc(
     (user_id, conta_id, data, tipo, valor, descricao, categoria_id, forma_pagamento, status,
      serie_id, serie_tipo, parcela_atual, parcela_total)
   values
-    (p_user, p_conta, p_data, p_tipo, p_valor, p_desc, p_cat, p_forma, p_status,
+    (p_user, p_conta, p_data, p_tipo::public.tipo_lancamento, p_valor, p_desc, p_cat, p_forma, p_status::public.status_lancamento,
      p_serie, p_serie_tipo, p_parc, p_total)
 $$;
 
