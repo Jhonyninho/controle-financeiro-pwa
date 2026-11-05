@@ -52,7 +52,6 @@ async function iniciar() {
     ...(itemId ? { updateItem: itemId } : {}),
     language: 'pt',
     theme: 'dark',
-    countries: ['BR'],
     onSuccess: async ({ item }) => {
       concluiu = true;
       mostrar('Banco conectado. Buscando as transações…');
