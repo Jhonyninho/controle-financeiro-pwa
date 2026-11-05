@@ -74,6 +74,17 @@ export async function usuarioAutorizado(req: Request): Promise<User> {
   return data.user;
 }
 
+/**
+ * Resumo curto e sem dados sensíveis para diagnóstico: código do Postgres/PostgREST
+ * ou "Pluggy <método> <rota> <status>". Nunca inclui tokens, corpo de resposta nem credenciais.
+ */
+function descreverErro(e: unknown): string {
+  const obj = e as { code?: string; message?: string; name?: string };
+  if (obj && typeof obj === 'object' && obj.code) return `db ${obj.code}: ${String(obj.message || '').slice(0, 160)}`;
+  if (e instanceof Error) return `${e.name}: ${e.message}`.slice(0, 200);
+  return 'desconhecida';
+}
+
 /** Envolve o handler: OPTIONS, só POST, origem permitida e erros sem vazar detalhes. */
 export function servir(handler: (req: Request) => Promise<Response>, { exigirOrigem = true } = {}) {
   Deno.serve(async (req) => {
@@ -86,8 +97,9 @@ export function servir(handler: (req: Request) => Promise<Response>, { exigirOri
       return await handler(req);
     } catch (e) {
       if (e instanceof ErroHttp) return json(req, { erro: e.message }, e.status);
-      console.error('falha interna:', e instanceof Error ? e.name + ': ' + e.message : 'desconhecida');
-      return json(req, { erro: 'Não foi possível concluir agora. Tente de novo em instantes.' }, 500);
+      const detalhe = descreverErro(e);
+      console.error('falha interna:', detalhe);
+      return json(req, { erro: 'Não foi possível concluir agora. Tente de novo em instantes.', detalhe }, 500);
     }
   });
 }

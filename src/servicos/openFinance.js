@@ -14,6 +14,7 @@ async function chamar(funcao, corpo = {}) {
     try {
       const det = await error.context?.json?.();
       if (det?.erro) mensagem = det.erro;
+      if (det?.detalhe) mensagem += ` (detalhe: ${det.detalhe})`;
     } catch {
       /* resposta sem JSON */
     }

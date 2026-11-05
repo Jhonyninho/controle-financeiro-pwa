@@ -40,7 +40,19 @@ export async function pluggy(metodo: string, caminho: string, corpo?: unknown) {
 
 const diasAtras = (base: Date, dias: number) => new Date(base.getTime() - dias * 86_400_000).toISOString().slice(0, 10);
 
-type Conexao = { id: string; user_id: string; item_id: string; ultima_sincronizacao: string | null };
+/** Caminho da próxima página a partir do `next` da v2 (URL, query string ou cursor puro). */
+function proximaPagina(next: unknown, primeira: string): string | null {
+  if (typeof next !== 'string' || !next) return null;
+  if (next.startsWith('http')) {
+    const u = new URL(next);
+    return u.origin === BASE ? u.pathname + u.search : null; // nunca segue para outro domínio
+  }
+  if (next.startsWith('/')) return next;
+  if (next.includes('=')) return `/v2/transactions${next.startsWith('?') ? next : `?${next}`}`;
+  return `${primeira}&after=${encodeURIComponent(next)}`;
+}
+
+type Conexao ={ id: string; user_id: string; item_id: string; ultima_sincronizacao: string | null };
 
 /**
  * Atualiza status, contas e fila de transações de uma conexão.
@@ -87,11 +99,12 @@ export async function sincronizarConexao(admin: SupabaseClient, conexao: Conexao
 
   let novas = 0;
   for (const ext of externas || []) {
-    for (let pagina = 1; pagina <= MAX_PAGINAS; pagina++) {
-      const r = await pluggy(
-        'GET',
-        `/transactions?accountId=${encodeURIComponent(ext.account_id)}&from=${desde}&pageSize=500&page=${pagina}`,
-      );
+    // GET /v2/transactions (o antigo /transactions responde 410): paginação por cursor,
+    // seguindo `next` até vir nulo. O `next` é usado como veio, sem recodificar o cursor.
+    const primeira = `/v2/transactions?accountId=${encodeURIComponent(ext.account_id)}&dateFrom=${desde}`;
+    let caminho: string | null = primeira;
+    for (let pagina = 1; caminho && pagina <= MAX_PAGINAS; pagina++) {
+      const r = await pluggy('GET', caminho);
       const linhas = (r?.results || [])
         .map((tx: unknown) => mapearTransacao(tx, ext.tipo))
         .filter(Boolean)
@@ -104,7 +117,7 @@ export async function sincronizarConexao(admin: SupabaseClient, conexao: Conexao
         if (ins.error) throw ins.error;
         novas += ins.data?.length || 0;
       }
-      if (!r || pagina >= (r.totalPages || 1)) break;
+      caminho = proximaPagina(r?.next, primeira);
     }
   }
 
