@@ -22,6 +22,28 @@ function csp(supabaseUrl) {
     "form-action 'self'",
     "worker-src 'self'",
     "manifest-src 'self'",
+    // o app nunca embute outras páginas
+    "frame-src 'none'",
+  ].join('; ');
+}
+
+// CSP da página isolada do widget da Pluggy (conectar-banco.html). O widget (zoid)
+// injeta <style> inline e abre um iframe de connect.pluggy.ai; a exceção de estilo
+// vale só aqui, numa página que não mostra dados financeiros nem textos de extratos.
+function cspConectar(supabaseUrl) {
+  const origem = new URL(supabaseUrl).origin;
+  return [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https://*.pluggy.ai",
+    "font-src 'self'",
+    `connect-src 'self' ${origem} https://api.pluggy.ai`,
+    "frame-src https://connect.pluggy.ai",
+    "child-src https://connect.pluggy.ai",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
   ].join('; ');
 }
 
@@ -40,10 +62,9 @@ export default defineConfig(({ mode }) => {
           handler(html) {
             // Em dev o Vite injeta scripts inline (HMR), então a CSP só vale no build.
             if (mode !== 'production') return html;
-            return html.replace(
-              '<!--CSP-->',
-              `<meta http-equiv="Content-Security-Policy" content="${csp(supabaseUrl)}">`,
-            );
+            return html
+              .replace('<!--CSP-->', `<meta http-equiv="Content-Security-Policy" content="${csp(supabaseUrl)}">`)
+              .replace('<!--CSP-CONECTAR-->', `<meta http-equiv="Content-Security-Policy" content="${cspConectar(supabaseUrl)}">`);
           },
         },
       },
@@ -56,6 +77,10 @@ export default defineConfig(({ mode }) => {
       // o sprite de ícones é usado por <use href>, que não aceita data: URL
       assetsInlineLimit: (arquivo) => (arquivo.endsWith('.svg') ? false : undefined),
       target: 'es2022',
+      rollupOptions: {
+        // segunda página: só o widget de conexão bancária, com CSP própria
+        input: { main: 'index.html', conectar: 'conectar-banco.html' },
+      },
     },
     test: {
       environment: 'node',

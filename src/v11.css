@@ -361,3 +361,18 @@
   50% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--ciano) 0%, transparent); }
 }
 @media (prefers-reduced-motion: reduce) { .btn-voz.ouvindo, .btn-voz.convite { animation: none; } }
+
+/* ---------- Bancos conectados (Open Finance) ---------- */
+.lista-bancos, .contas-externas { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.banco-conectado { border: 1px solid color-mix(in srgb, var(--tinta) 22%, transparent); border-radius: 14px; padding: 12px 14px; }
+.banco-conectado > header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 10px; }
+.banco-conectado > header .botoes { margin-left: auto; }
+.status-banco { color: var(--texto-2); }
+.status-login_necessario, .status-erro { color: var(--saida); }
+.conta-externa { display: grid; grid-template-columns: 1fr minmax(160px, 220px) auto; gap: 8px 12px; align-items: center; }
+.conta-externa small { color: var(--texto-2); }
+.ext-vinculo { display: flex; align-items: center; gap: 8px; font-size: 0.9em; }
+.ext-vinculo select { flex: 1; min-width: 0; }
+@media (max-width: 640px) {
+  .conta-externa { grid-template-columns: 1fr; }
+}

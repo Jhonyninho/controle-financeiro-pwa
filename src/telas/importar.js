@@ -10,6 +10,8 @@ import { deslocarMes, limitesMes, nomeMes, somarDias } from '../lib/meses.js';
 import { gerarModelo, promptIA } from '../importacao/modelo.js';
 import { lerPlanilha, ErroImportacao } from '../importacao/leitor.js';
 import { conciliarPrevistos } from '../importacao/previstos.js';
+import { nomeImportacaoBanco, pendentesParaItens, rotuloStatus } from '../importacao/openFinance.js';
+import { desconectarBanco, sincronizarBancos } from '../servicos/openFinance.js';
 import { criarClassificador, chaveDescricao } from '../importacao/classificador.js';
 import { estado, categoriaPorId, contaPorId, contasAtivas, contasSalarioDe, definirMes } from '../estado.js';
 import {
@@ -19,7 +21,7 @@ import {
 const POR_PAGINA = 100;
 const ORIGENS = { contaSalario: 'salário vindo da conta salário', previsto: 'do lançamento previsto', transferencia: 'transferência entre suas contas', manual: 'escolhida por você', planilha: 'sugerida pela IA', regra: 'pela sua regra', historico: 'pelo seu histórico', padrao: 'por palavra-chave' };
 
-let previa = null; // { contaId, arquivo, itens[] }
+let previa = null; // { contaId, arquivo, itens[], ehFatura, banco? }
 let pagina = 0;
 
 // SheetJS é grande: só carrega quando o usuário usa a importação
@@ -80,7 +82,7 @@ function desenharPrevia(el) {
     html`<section class="bloco">
       <header class="bloco-topo">
         <h3>3. Confira antes de importar</h3>
-        <span>${previa.ehFatura ? 'Fatura do cartão' : 'Extrato'} de <strong>${contaPorId(previa.contaId)?.nome}</strong></span>
+        <span>${previa.banco ? 'Transações do banco' : previa.ehFatura ? 'Fatura do cartão' : 'Extrato'} de <strong>${contaPorId(previa.contaId)?.nome}</strong></span>
       </header>
       <div class="totais">
         <span>Linhas <strong>${r.total}</strong></span>
@@ -266,7 +268,15 @@ async function processarArquivo(el, arquivo, contaId, ehFatura) {
   const XLSX = await carregarXLSX();
   const bytes = new Uint8Array(await arquivo.arrayBuffer());
   const { itens, ignoradas } = await lerPlanilha(XLSX, bytes, arquivo.name);
+  await montarPrevia(el, { itens, ignoradas, contaId, arquivo: arquivo.name, ehFatura });
+}
 
+/**
+ * Etapa comum a qualquer origem (planilha ou Open Finance): classificação, transferências,
+ * previstos, conta salário e a prévia para o usuário conferir.
+ * `banco` (opcional) marca itens vindos da fila do Open Finance (cada item tem pendenteId).
+ */
+async function montarPrevia(el, { itens, ignoradas = 0, contaId, arquivo, ehFatura, banco = null }) {
   const [regras, historico, futuros] = await Promise.all([api.listarRegras(), api.historicoClassificacao(), api.listarFuturos()]);
   const classificar = criarClassificador({ categorias: estado.categorias, regras, historico });
   const existentes = await api.hashesExistentes(contaId, itens.filter((i) => i.hash).map((i) => i.hash));
@@ -310,7 +320,7 @@ async function processarArquivo(el, arquivo, contaId, ehFatura) {
     it.incluir = !it.erros.length && !it.duplicado;
   });
 
-  previa = { contaId, arquivo: arquivo.name, itens, ehFatura };
+  previa = { contaId, arquivo, itens, ehFatura, banco };
   pagina = 0;
   desenharPrevia(el);
   if (ignoradas) avisar(`${ignoradas} linha(s) de saldo/total foram ignoradas.`, 'info');
@@ -371,6 +381,15 @@ async function confirmarImportacao(el, botao) {
     }));
     const r = await api.importarLancamentos(previa.contaId, previa.arquivo, itens);
 
+    // fila do Open Finance: importadas (ou que já existiam) saem da fila; desmarcadas ficam ignoradas
+    if (previa.banco) {
+      const daFila = previa.itens.filter((i) => i.pendenteId);
+      const importadas = daFila.filter((i) => i.incluir || i.duplicado).map((i) => i.pendenteId);
+      const ignoradas = daFila.filter((i) => !i.incluir && !i.duplicado).map((i) => i.pendenteId);
+      if (importadas.length) await api.marcarPendentes(importadas, 'IMPORTADA');
+      if (ignoradas.length) await api.marcarPendentes(ignoradas, 'IGNORADA');
+    }
+
     // o realizado entra no lugar do previsto: apaga os previstos conciliados
     const substituidos = selecionados.filter((i) => i.previsto).map((i) => i.previsto.id);
     if (substituidos.length) await api.excluirPrevistos(substituidos);
@@ -421,6 +440,84 @@ async function confirmarImportacao(el, botao) {
     $('#form-importar', el).reset();
     $('.area-origem', el).hidden = !contaPorId($('[name=conta]', el).value)?.tem_credito;
     await desenharHistorico(el);
+    await desenharBancos(el);
+  });
+}
+
+// ---------------------------------------------------------------------
+// Bancos conectados (Open Finance via Pluggy)
+// ---------------------------------------------------------------------
+let liberadoOpenFinance = false;
+
+async function desenharBancos(el) {
+  const area = $('#area-bancos', el);
+  if (!area || !liberadoOpenFinance) return;
+  const [conexoes, pendentes] = await Promise.all([api.listarConexoesBancarias(), api.contarPendentes()]);
+
+  const linhaConta = (c, ext) => {
+    const n = pendentes.get(ext.id) || 0;
+    const saldo = ext.saldo !== null && ext.tipo !== 'CREDIT' ? html` · saldo no banco ${formatarMoeda(Number(ext.saldo))}` : '';
+    return html`<li class="conta-externa">
+      <span class="ext-nome"><strong>${ext.nome}</strong> <small>${ext.tipo === 'CREDIT' ? 'cartão de crédito' : 'conta'}${saldo}</small></span>
+      <label class="ext-vinculo">No app <select name="vincular-conta" data-externa="${ext.id}">
+        <option value="" ${ext.conta_id ? '' : 'selected'}>Escolha a conta…</option>${opcoesContas(ext.conta_id)}
+      </select></label>
+      <button class="btn btn-pequeno ${n ? 'btn-primario' : 'btn-secundario'}" data-acao="revisar-banco" data-externa="${ext.id}"
+        data-conexao="${c.id}" ${n && ext.conta_id ? '' : 'disabled'}>${n ? `Conferir ${n} nova(s)` : 'Nada novo'}</button>
+    </li>`;
+  };
+
+  const quando = (c) =>
+    c.ultima_sincronizacao
+      ? ` · ${new Date(c.ultima_sincronizacao).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
+      : '';
+
+  renderizar(area, html`<h3>Bancos conectados</h3>
+    <p class="dica">Conexão pelo Open Finance (Pluggy). O app só lê contas, saldos e transações; nada é movimentado.
+      As transações novas passam pela mesma conferência da planilha antes de virar lançamento.</p>
+    ${conexoes.length
+      ? html`<ul class="lista-bancos">${conexoes.map((c) => html`<li class="banco-conectado">
+          <header>
+            <strong>${c.instituicao || 'Banco'}</strong>
+            <small class="status-banco status-${c.status.toLowerCase()}">${rotuloStatus(c.status)}${quando(c)}</small>
+            <span class="botoes">
+              ${c.status === 'LOGIN_NECESSARIO'
+                ? html`<a class="btn btn-pequeno btn-primario" href="./conectar-banco.html?reconectar=${c.id}">Reconectar</a>`
+                : html`<button class="btn btn-pequeno btn-secundario" data-acao="sincronizar-banco" data-conexao="${c.id}">Sincronizar agora</button>`}
+              <button class="btn btn-pequeno btn-secundario" data-acao="desconectar-banco" data-conexao="${c.id}" data-nome="${c.instituicao}">Desconectar</button>
+            </span>
+          </header>
+          <ul class="contas-externas">${(c.contas_externas || []).map((ext) => linhaConta(c, ext))}</ul>
+        </li>`)}</ul>`
+      : ''}
+    <div class="botoes"><button class="btn btn-primario" data-acao="conectar-banco">Conectar banco</button></div>`);
+}
+
+/** Termo de consentimento (LGPD) antes de abrir o widget da Pluggy. */
+function consentirConexao() {
+  return confirmar(
+    'Para conectar, você vai para a janela segura da Pluggy, instituição que opera no Open Finance autorizado pelo Banco Central. ' +
+      'O app lê somente suas contas, saldos e transações, para montar seus lançamentos e relatórios. Nenhum pagamento ou ' +
+      'transferência pode ser feito por esta conexão, e sua senha do banco não passa pelo app. Você pode desconectar quando quiser ' +
+      'nesta tela: o acesso é encerrado e as transações ainda não importadas são apagadas.',
+    { perigo: false, textoOk: 'Concordo, conectar' },
+  );
+}
+
+async function revisarBanco(el, conexaoId, externaId) {
+  const conexoes = await api.listarConexoesBancarias();
+  const conexao = conexoes.find((c) => c.id === conexaoId);
+  const ext = conexao?.contas_externas?.find((e) => e.id === externaId);
+  if (!ext?.conta_id) return avisar('Escolha primeiro a conta do app para esta conta do banco.', 'erro');
+  const pendentes = await api.listarPendentes(externaId);
+  if (!pendentes.length) return avisar('Nenhuma transação nova.', 'info');
+  const itens = await pendentesParaItens(pendentes);
+  await montarPrevia(el, {
+    itens,
+    contaId: ext.conta_id,
+    arquivo: nomeImportacaoBanco(conexao.instituicao, ext.nome, formatarData(new Date().toISOString().slice(0, 10))),
+    ehFatura: ext.tipo === 'CREDIT',
+    banco: { conexaoId, externaId },
   });
 }
 
@@ -583,6 +680,8 @@ export default {
           </form>
         </section>
 
+        <section class="bloco" id="area-bancos" hidden></section>
+
         <section class="bloco" id="area-titular"></section>
 
         <div id="area-previa"></div>
@@ -616,8 +715,17 @@ export default {
     };
     mostrarOrigem();
 
-    el.addEventListener('change', (e) => {
+    el.addEventListener('change', async (e) => {
       if (e.target.name === 'conta') return mostrarOrigem();
+      if (e.target.name === 'vincular-conta') {
+        try {
+          await api.vincularContaExterna(e.target.dataset.externa, e.target.value);
+          await desenharBancos(el);
+        } catch (err) {
+          avisarErro(err);
+        }
+        return;
+      }
       const idx = e.target.dataset.idx;
       if (idx === undefined || !previa) return;
       const it = previa.itens[Number(idx)];
@@ -669,6 +777,40 @@ export default {
         case 'importar':
           await confirmarImportacao(el, b);
           break;
+        case 'conectar-banco':
+          if (await consentirConexao()) window.location.assign('./conectar-banco.html');
+          break;
+        case 'sincronizar-banco':
+          await comCarregando(b, async () => {
+            try {
+              const r = await sincronizarBancos(b.dataset.conexao, true);
+              avisar(r.novas ? `${r.novas} transação(ões) nova(s) para conferir.` : 'Nenhuma transação nova por enquanto. O banco pode levar alguns minutos para atualizar.', 'info');
+              await desenharBancos(el);
+            } catch (err) {
+              avisarErro(err);
+            }
+          });
+          break;
+        case 'desconectar-banco':
+          if (await confirmar(`Desconectar ${b.dataset.nome || 'este banco'}? O acesso é encerrado na Pluggy e as transações ainda não importadas são apagadas. Os lançamentos já importados continuam no app.`, { textoOk: 'Desconectar' })) {
+            try {
+              await desconectarBanco(b.dataset.conexao);
+              avisar('Banco desconectado.');
+              await desenharBancos(el);
+            } catch (err) {
+              avisarErro(err);
+            }
+          }
+          break;
+        case 'revisar-banco':
+          await comCarregando(b, async () => {
+            try {
+              await revisarBanco(el, b.dataset.conexao, b.dataset.externa);
+            } catch (err) {
+              avisarErro(err);
+            }
+          });
+          break;
         case 'desfazer':
           if (await confirmar(`Desfazer esta importação apaga ${b.dataset.qtd} lançamento(s). Continuar?`, { textoOk: 'Desfazer' })) {
             try {
@@ -684,6 +826,12 @@ export default {
     });
 
     desenharTitular(el);
+    liberadoOpenFinance = await api.openFinanceLiberado();
+    if (liberadoOpenFinance) {
+      $('#area-bancos', el).hidden = false;
+      if (window.location.hash.includes('banco=ok')) avisar('Banco conectado. Confira as transações novas em "Bancos conectados".');
+      await desenharBancos(el).catch(avisarErro);
+    }
     await desenharHistorico(el);
   },
 };

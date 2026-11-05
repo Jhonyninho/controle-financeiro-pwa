@@ -365,3 +365,53 @@ export async function atualizarPrevistos(alteracoes) {
 export async function excluirPrevistosDaConta(contaId) {
   ok(await supabase.from('lancamentos').delete().eq('status', 'PREVISTO').eq('conta_id', contaId));
 }
+
+// ---------------------------------------------------------------------
+// Open Finance (conexões e fila). Inserções só acontecem nas Edge Functions;
+// aqui o app lê, liga a conta externa a uma conta do app e marca a fila.
+// ---------------------------------------------------------------------
+export async function openFinanceLiberado() {
+  const { data, error } = await supabase.rpc('open_finance_liberado');
+  return !error && data === true; // sem a migração (ou sem liberação), a função some da tela
+}
+
+export async function listarConexoesBancarias() {
+  return ok(
+    await supabase
+      .from('conexoes_bancarias')
+      .select('id, instituicao, status, ultima_sincronizacao, criado_em, contas_externas(id, nome, tipo, saldo, conta_id)')
+      .order('criado_em'),
+  );
+}
+
+/** Quantas transações aguardam a prévia, por conta externa. */
+export async function contarPendentes() {
+  const linhas = await todos(() =>
+    supabase.from('transacoes_pendentes').select('conta_externa_id').eq('situacao', 'PENDENTE').order('id'),
+  );
+  const contagem = new Map();
+  for (const l of linhas) contagem.set(l.conta_externa_id, (contagem.get(l.conta_externa_id) || 0) + 1);
+  return contagem;
+}
+
+export async function listarPendentes(contaExternaId) {
+  return todos(() =>
+    supabase
+      .from('transacoes_pendentes')
+      .select('id, transacao_id, data, valor, tipo, descricao, forma_pagamento')
+      .eq('conta_externa_id', contaExternaId)
+      .eq('situacao', 'PENDENTE')
+      .order('data')
+      .order('id'),
+  );
+}
+
+export async function vincularContaExterna(id, contaId) {
+  ok(await supabase.from('contas_externas').update({ conta_id: contaId || null }).eq('id', id));
+}
+
+export async function marcarPendentes(ids, situacao) {
+  for (let i = 0; i < ids.length; i += 200) {
+    ok(await supabase.from('transacoes_pendentes').update({ situacao }).in('id', ids.slice(i, i + 200)));
+  }
+}

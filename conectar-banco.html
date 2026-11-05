@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <!--CSP-CONECTAR-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#0a0e27" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="robots" content="noindex" />
+    <title>Conectar banco | Controle Financeiro</title>
+    <link rel="icon" href="./icons/icon-192.png" />
+  </head>
+  <body>
+    <!--
+      Página isolada para o widget da Pluggy. O widget injeta CSS inline, que a CSP
+      rígida do app bloqueia; aqui a exceção vale só para esta página, que não mostra
+      nenhum dado financeiro nem texto vindo de extratos.
+    -->
+    <main class="conectar">
+      <h1>Conectar banco</h1>
+      <p id="estado" role="status" aria-live="polite">Preparando a conexão segura…</p>
+      <p><a id="voltar" href="./#/importar">Voltar ao app</a></p>
+    </main>
+    <script type="module" src="/src/conectarBanco.js"></script>
+  </body>
+</html>

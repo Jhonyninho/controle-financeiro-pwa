@@ -21,6 +21,8 @@ self.addEventListener('fetch', (event) => {
 
   // Navegação: rede primeiro, cache como reserva
   if (req.mode === 'navigate') {
+    // só a página do app vira a cópia offline; outras páginas (ex.: conectar-banco.html) passam direto
+    if (!url.pathname.endsWith('/') && !url.pathname.endsWith('/index.html')) return;
     event.respondWith(
       fetch(req)
         .then((res) => {

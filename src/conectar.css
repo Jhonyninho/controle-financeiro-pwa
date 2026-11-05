@@ -1,0 +1,34 @@
+/* Página isolada do widget da Pluggy (conectar-banco.html) */
+:root {
+  --abismo: #0a0e27;
+  --texto: #e9ecff;
+  --texto-2: #a1a9cf;
+  --ciano: #4fd1ff;
+  --saida: #ff7a7a;
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--abismo);
+  color: var(--texto);
+  font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+.conectar {
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 3rem 16px;
+}
+.conectar h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+#estado {
+  color: var(--texto-2);
+}
+#estado.erro {
+  color: var(--saida);
+}
+a {
+  color: var(--ciano);
+}

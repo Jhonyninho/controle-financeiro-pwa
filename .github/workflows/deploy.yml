@@ -42,6 +42,8 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_KEY }}
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          # "1" mostra os bancos de teste da Pluggy no widget (variável do repositório, não é segredo)
+          VITE_PLUGGY_SANDBOX: ${{ vars.VITE_PLUGGY_SANDBOX }}
       - name: Conferir que nenhuma chave secreta foi parar no build
         run: |
           if grep -rqE "sb_secret_[A-Za-z0-9_-]{16,}" dist; then

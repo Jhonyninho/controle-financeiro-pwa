@@ -71,3 +71,39 @@ Necessário só se quiser editar o texto dos e-mails.
 1. Crie uma conta gratuita num serviço de envio (ex.: Resend ou Brevo) e gere as credenciais SMTP.
 2. **Authentication → Emails → SMTP Settings**: ative *Custom SMTP* e preencha host, porta, usuário, senha e remetente.
 3. Em **Emails → Templates**, edite o texto de *Invite user* e *Reset password* à vontade, **mantendo o link `{{ .ConfirmationURL }}`**.
+
+## 9. (Opcional) Conexão com bancos — Open Finance via Pluggy
+Por enquanto, liberada só para quem o dono escolher. O navegador nunca recebe as credenciais da Pluggy: quem fala com ela são as Edge Functions em `supabase/functions/of-*`.
+
+1. **Pluggy:** crie uma conta em dashboard.pluggy.ai e copie o `CLIENT_ID` e o `CLIENT_SECRET` do ambiente de testes.
+2. **Banco:** aplique a migração `20261105000012_open_finance.sql` no SQL Editor. Depois, libere o seu usuário:
+   ```sql
+   insert into privado.open_finance_liberado (user_id)
+   select id from auth.users where email = 'seu-email@exemplo.com';
+   ```
+3. **Supabase CLI** (uma vez): instale, rode `supabase login` e depois `supabase link --project-ref SEU-PROJETO`.
+4. **Segredos das funções.** Ficam só no Supabase, nunca no repositório nem em variáveis `VITE_`. Para gerar um segredo longo e aleatório, use `node -e "console.log(crypto.randomUUID()+crypto.randomUUID())"`.
+   ```bash
+   supabase secrets set PLUGGY_CLIENT_ID=... PLUGGY_CLIENT_SECRET=... \
+     PLUGGY_WEBHOOK_SECRET=<segredo longo e aleatório> \
+     APP_ORIGENS=https://SEU-USUARIO.github.io,http://localhost:5173
+   ```
+5. **Publicar as funções.** O webhook não usa login: ele se protege pelo segredo.
+   ```bash
+   supabase functions deploy of-token of-conexao of-sincronizar of-desconectar
+   supabase functions deploy of-webhook --no-verify-jwt
+   ```
+6. **Webhook na Pluggy:** cadastre `https://SEU-PROJETO.supabase.co/functions/v1/of-webhook` para os eventos `item/updated`, `item/error`, `item/login_required`, `item/deleted` e `transactions/created`.
+   - Envie o segredo no cabeçalho `x-webhook-secret`.
+   - Se o painel não aceitar cabeçalhos, acrescente `?chave=<segredo>` ao final da URL.
+7. **Bancos de teste:** para o widget mostrar os bancos fictícios da Pluggy, crie a variável `VITE_PLUGGY_SANDBOX=1`.
+   - No GitHub: Settings → Secrets and variables → Actions → **Variables**.
+   - Localmente: no `.env.local`.
+
+No app, o caminho é **Importar extrato → Bancos conectados → Conectar banco**. Depois de conectar:
+- escolha a conta do app para cada conta do banco;
+- use **Conferir N nova(s)** para abrir a mesma prévia da planilha.
+
+**Desconectar** encerra o acesso na Pluggy e apaga as transações ainda não importadas. Os lançamentos já importados continuam no app.
+
+**Uso comercial:** liberar para todos exige o ambiente de produção da Pluggy (com contrato e custo por conexão) e uma política de privacidade publicada, porque o app passa a tratar dados bancários (LGPD).

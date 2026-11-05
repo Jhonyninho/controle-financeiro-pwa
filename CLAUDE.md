@@ -26,7 +26,7 @@ Database changes: add a new file in `supabase/migrations/` (never edit an applie
 
 ## Security model
 
-- **No custom backend.** The browser talks to Supabase directly with the public (publishable/anon) key. Security relies entirely on Postgres RLS: every table has `user_id default auth.uid()` and policies `(select auth.uid()) = user_id`; `anon` has no grants. Cross-user references are blocked by **composite foreign keys `(x_id, user_id)`** — any new table referencing another must follow that pattern. Never use the service_role/secret key in `src/` (`src/lib/supabase.js` refuses it).
+- **No custom backend** (the only exception is the Open Finance Edge Functions; see that section). The browser talks to Supabase directly with the public (publishable/anon) key. Security relies entirely on Postgres RLS: every table has `user_id default auth.uid()` and policies `(select auth.uid()) = user_id`; `anon` has no grants. Cross-user references are blocked by **composite foreign keys `(x_id, user_id)`** — any new table referencing another must follow that pattern. Never use the service_role/secret key in `src/` (`src/lib/supabase.js` refuses it).
 - **2FA (TOTP):** `src/servicos/seguranca.js` wraps `supabase.auth.mfa`. After password login, or at startup with a saved session, `nivelDaSessao().precisaCodigo` routes to `mostrarCodigo()` (`telas/auth.js`) before `entrarNoApp`. Enforced server-side: migration 0009 adds a RESTRICTIVE `*_exige_mfa` policy on every table using `privado.sessao_mfa_ok()` (aal2 only for users with a verified factor). **New tables need the RLS policies, the composite FKs and this restrictive policy.** Configurações also has Trocar senha and Sair de todos os aparelhos (`signOut({ scope: 'global' })`).
 - **Auth links** (invite, password reset) arrive as `?token_hash=…&type=invite|recovery` (custom email templates) and are handled by `validarLinkDoEmail()`; `detectSessionInUrl` is off on purpose.
 - **XSS:** never assign `innerHTML` directly. Build markup with the `html` tagged template and write it with `renderizar()` (`src/lib/html.js`), which escapes every interpolated value. Imported statement descriptions are untrusted input.
@@ -36,7 +36,7 @@ Database changes: add a new file in `supabase/migrations/` (never edit an applie
 
 ## Data model (`supabase/migrations/`)
 
-Tables: `contas`, `categorias`, `lancamentos`, `importacoes`, `regras_classificacao`, `perfis`, `metas`.
+Tables: `contas`, `categorias`, `lancamentos`, `importacoes`, `regras_classificacao`, `perfis`, `metas`, plus the Open Finance tables `conexoes_bancarias`, `contas_externas` and `transacoes_pendentes`.
 
 - **conta** (tipo CORRENTE/DIGITAL/POUPANCA/CARTEIRA/INVESTIMENTO/SALARIO) owns its payment methods (`tem_debito/tem_credito/tem_pix/tem_ted`). The credit card is NOT a separate account — `dia_fechamento/dia_vencimento/limite_credito` live on the account. Allowed `forma_pagamento` per account: `meiosDaConta()` in `src/estado.js`.
 - **Conta salário** (tipo SALARIO, migration 0010): `conta_vinculada_id` (composite FK, set null) points to the account it transfers to. The salary is an ENTRADA in the conta salário in its reference month; the later transfer is "Entre minhas contas" on both sides. In Resumo it is a line inside the linked card (`contasSalarioDe`), not its own card. `listarContas` falls back without the column if the migration is missing.
@@ -68,6 +68,29 @@ Only `.xlsx/.xls/.csv` in the app's own template — bank-specific formats are i
 7. RPC `importar_lancamentos(conta, arquivo, itens jsonb)` inserts in one transaction (SECURITY INVOKER, so RLS applies) and silently skips duplicates via the partial unique index on `hash_import`. Deleting an `importacoes` row cascades to its lançamentos ("undo import").
 
 SheetJS is installed from `cdn.sheetjs.com` (the npm registry version is outdated and vulnerable) — don't replace it with `npm i xlsx`.
+
+### Open Finance (Pluggy, migration 0012, per-user opt-in)
+
+The only server code in the project: Supabase Edge Functions in `supabase/functions/` (Deno). Owner setup: `docs/SETUP-SUPABASE.md` §9.
+
+- **Secrets:** `PLUGGY_CLIENT_ID/SECRET`, `PLUGGY_WEBHOOK_SECRET` and `APP_ORIGENS` exist only as function secrets. The browser gets only the short-lived connect token.
+- **Functions:**
+  - `of-token`: connect token with `clientUserId = auth.uid()`.
+  - `of-conexao`: accepts an item only if Pluggy reports the same `clientUserId`.
+  - `of-sincronizar`.
+  - `of-desconectar`: deletes the item at Pluggy.
+  - `of-webhook`: deployed with `--no-verify-jwt`; constant-time secret check; never trusts the body and re-fetches by `itemId`.
+- **Shared function code:** `_compartilhado/servidor.ts`, `_compartilhado/pluggy.ts` and `_compartilhado/mapear.js` (pure, tested from Vitest).
+- **Authorization:** `usuarioAutorizado()` checks the JWT. It checks MFA by reading `perfis` through the restrictive policy, and checks `public.open_finance_liberado()` (backed by `privado.open_finance_liberado`, which the owner fills by SQL).
+- **service_role** is used only inside functions, always filtered by the validated `user_id`.
+- **Tables:** `conexoes_bancarias`, `contas_externas` (Pluggy account → app `conta_id`, chosen by the user) and `transacoes_pendentes` (the queue).
+  - The client may only select, delete, update `contas_externas.conta_id` and update `transacoes_pendentes.situacao`.
+  - Inserts are server-only.
+- **Queue → lançamentos:** pending rows go through `pendentesParaItens` (`src/importacao/openFinance.js`). The hash is SHA-256 of `pluggy|<transaction id>`, so the existing `hash_import` dedup applies. They then go through the same `montarPrevia` as spreadsheets (`telas/importar.js`). After the RPC, rows are marked IMPORTADA or IGNORADA.
+- **Widget page:** the Pluggy widget (zoid) injects inline `<style>`. It therefore runs on a separate page, `conectar-banco.html` + `src/conectarBanco.js`, with its own CSP (`cspConectar` in `vite.config.js`: `style-src 'unsafe-inline'`, `frame-src https://connect.pluggy.ai`). That page never renders financial data.
+  - The main app CSP stays strict and has `frame-src 'none'`.
+  - The SW caches only the app page on navigation.
+- **Function calls from the client** live in `src/servicos/openFinance.js`, not `api.js`. The widget page must not load the rest of the app.
 
 ## Frontend structure
 
